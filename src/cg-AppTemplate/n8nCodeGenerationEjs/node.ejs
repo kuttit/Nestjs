@@ -1,0 +1,521 @@
+<%_ try { _%><%_ if(data.nodeDetails[0].nodeType === 'P') { _%>
+	import {
+		IExecuteFunctions,
+		INodeExecutionData,
+		INodeType,
+		INodeTypeDescription,
+		NodeOperationError
+	} from 'n8n-workflow';
+	<%_ } else {  _%>
+	import {INodeType, INodeTypeDescription} from 'n8n-workflow';
+	<%_ }  _%>
+	<%_ } catch (error) { _%>
+	<%_ }	_%>
+	export class <%= relation %>
+	implements INodeType {
+		description : INodeTypeDescription = {
+			displayName: '<%= data.nodeDetails[0].displayName %>',
+			name: '<%= data.nodeDetails[0].name %>',
+			group: ['transform'],
+			version: <%= data.nodeDetails[0].version %>,
+			<%_ if(data.nodeDetails[0].subtitle) { _%>
+			subtitle: '= {{ $parameter["<%= data.nodeDetails[0].subtitle[0]  %>"] + ": " + $parameter["<%= data.nodeDetails[0].subtitle[0]  %>"] }}',
+			<%_ } else { _%>				
+			<%_ } _%>
+			description: '<%= data.nodeDetails[0].description %>',
+			defaults: {
+				name: '<%= data.nodeDetails[0].defaults.name %>',
+			},
+			inputs: ['main'],
+			outputs: ['main'],
+			<%_ if(data.nodeDetails[0].credentials) { _%>
+			credentials: [
+				{
+					name: '<%= data.nodeDetails[0].credentials[0].name %>',
+					required: <%= data.nodeDetails[0].credentials[0].required %>,
+				},
+			],
+			<%_ } else { _%>				
+			<%_ } _%>
+			<%_ if(data.nodeDetails[0].requestDefaults) { _%>
+			requestDefaults: {
+				baseURL: "<%=  data.nodeDetails[0].requestDefaults.baseURL %>",
+				<%_ if(data.nodeDetails[0].requestDefaults.url) {_%>
+				url : "<%=  data.nodeDetails[0].requestDefaults.url %>",
+				<%_ } _%>
+				headers : {
+					Accept: "<%=  data.nodeDetails[0].requestDefaults.headers.Accept %>",
+					'Content-Type': '<%=  data.nodeDetails[0].requestDefaults.headers.ContentType %>'
+				},
+			},
+			<%_ } else { _%>				
+			<%_ } _%>
+			properties: [
+				// Node properties which the user gets displayed and
+				// can change on the node.
+				
+	
+				<%_ for(let i = 0; i < data.nodeDetails[1].columnProperties.length; i++) { _%> 
+					<%_ if(data.nodeDetails[1].columnProperties[i].type === 'string') { _%>
+				{
+					displayName: '<%=data.nodeDetails[1].columnProperties[i].displayName %>',
+					name: '<%=data.nodeDetails[1].columnProperties[i].name %>',
+					type: '<%=data.nodeDetails[1].columnProperties[i].type %>',
+					default: '<%=data.nodeDetails[1].columnProperties[i].default %>',
+					placeholder: '<%=data.nodeDetails[1].columnProperties[i].placeholder %>',
+					description: '<%=data.nodeDetails[1].columnProperties[i].description %>',
+				},
+				<%_ } else if(data.nodeDetails[1].columnProperties[i].type === 'collection'){ _%>
+					{
+						displayName: '<%=data.nodeDetails[1].columnProperties[i].displayName %>',
+						name: '<%=data.nodeDetails[1].columnProperties[i].name %>',
+						<%_ if(data.nodeDetails[1].columnProperties[i].description) { _%>
+						description: '<%=data.nodeDetails[1].columnProperties[i].description %>',
+						<%_ }else {	_%>
+						<%_ } _%>
+						<%_ if(data.nodeDetails[1].columnProperties[i].required) { _%>
+						required: <%=data.nodeDetails[1].columnProperties[i].required %>,
+						<%_ }else {	_%>
+						<%_ } _%>
+						type: '<%=data.nodeDetails[1].columnProperties[i].type %>',
+						<%_ if(data.nodeDetails[1].columnProperties[i].noDataExpression) { _%>
+						noDataExpression: <%=data.nodeDetails[1].columnProperties[i].noDataExpression %>,
+						<%_ }else {	_%>
+						<%_ } _%>
+						<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions) { _%>
+							displayOptions: {
+								show: {
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.resource) { _%>	
+									resource: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.resource %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.operation) { _%>	
+									operation: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.operation %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData) { _%>	
+									typeofData: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									},
+								},
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+						options: [
+						<%_ for(let j = 0; j < data.nodeDetails[1].columnProperties[i].options.length; j++) { _%> 
+							{	
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].displayName) { _%>			
+								displayName: '<%= data.nodeDetails[1].columnProperties[i].options[j].displayName %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].name) { _%>			
+								name: '<%= data.nodeDetails[1].columnProperties[i].options[j].name %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].type) { _%>			
+								type: '<%= data.nodeDetails[1].columnProperties[i].options[j].type %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].default) { _%>			
+								default: '<%= data.nodeDetails[1].columnProperties[i].options[j].default %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].action) { _%>			
+								action: '<%= data.nodeDetails[1].columnProperties[i].options[j].action %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].description) { _%>			
+								description: '<%= data.nodeDetails[1].columnProperties[i].options[j].description %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing) { _%>			
+								routing: {
+									request: {
+										qs: {
+											date: '<%= data.nodeDetails[1].columnProperties[i].options[j].routing.request.qs %>'
+										}
+									<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing.request.method) { _%>
+									method: '<%= data.nodeDetails[1].columnProperties[i].options[j].routing.request.method %>',
+									<%_ }  _%>
+									<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing.request.url) { _%>
+									url: '<%= data.nodeDetails[1].columnProperties[i].options[j].routing.request.url %>',
+									<%_ }  _%>
+									},
+								},
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+				},
+						<%_ } _%>
+			],
+						default: '<%=data.nodeDetails[1].columnProperties[i].default %>',
+						placeholder: '<%=data.nodeDetails[1].columnProperties[i].placeholder %>',
+		}
+				<%_ } else if(data.nodeDetails[1].columnProperties[i].type === 'dateTime'){ _%>
+				{
+				displayName: '<%=data.nodeDetails[1].columnProperties[i].displayName %>',
+				name: '<%=data.nodeDetails[1].columnProperties[i].name %>',
+				<%_ if(data.nodeDetails[1].columnProperties[i].description) { _%>
+				description: '<%=data.nodeDetails[1].columnProperties[i].description %>',
+				<%_ }else {	_%>
+				<%_ } _%>
+				<%_ if(data.nodeDetails[1].columnProperties[i].required) { _%>
+				required: <%=data.nodeDetails[1].columnProperties[i].required %>,
+				<%_ }else {	_%>
+				<%_ } _%>
+				type: '<%=data.nodeDetails[1].columnProperties[i].type %>',
+				<%_ if(data.nodeDetails[1].columnProperties[i].noDataExpression) { _%>
+				noDataExpression: <%=data.nodeDetails[1].columnProperties[i].noDataExpression %>,
+				<%_ }else {	_%>
+				<%_ } _%>
+				<%_ try { _%> 	
+					<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions) { _%>
+					displayOptions: {
+						show: {
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.resource) { _%>	
+							resource: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.resource %>'],
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.operation) { _%>	
+							operation: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.operation %>'],
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData) { _%>	
+							typeofData: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData %>'],
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							},
+						},
+					<%_ }  _%>
+					<%_ } catch (error) { _%>
+					<%_ }	_%>
+				<%_ try { _%> 	
+				<%_ if(data.nodeDetails[1].columnProperties[i].routing) { _%>			
+				routing: {
+					request: {
+						qs: {
+							earth_date: '<%= data.nodeDetails[1].columnProperties[i].routing.request.qs %>'
+						}
+					<%_ if(data.nodeDetails[1].columnProperties[i].routing.request.method) { _%>
+					method: '<%= data.nodeDetails[1].columnProperties[i].routing.request.method %>',
+					<%_ }  _%>
+					<%_ if(data.nodeDetails[1].columnProperties[i].routing.request.url) { _%>
+					url: '<%= data.nodeDetails[1].columnProperties[i].routing.request.url %>',
+					<%_ }  _%>
+					},
+				},
+				<%_ }  _%>
+				<%_ } catch (error) { _%>
+				<%_ }	_%>
+				default: '<%=data.nodeDetails[1].columnProperties[i].default %>',
+},
+				<%_ } else if(data.nodeDetails[1].columnProperties[i].type === 'options'){ _%>
+					{
+						displayName: '<%=data.nodeDetails[1].columnProperties[i].displayName %>',
+						name: '<%=data.nodeDetails[1].columnProperties[i].name %>',
+						<%_ if(data.nodeDetails[1].columnProperties[i].description) { _%>
+						description: '<%=data.nodeDetails[1].columnProperties[i].description %>',
+						<%_ }else {	_%>
+						<%_ } _%>
+						<%_ if(data.nodeDetails[1].columnProperties[i].required) { _%>
+						required: <%=data.nodeDetails[1].columnProperties[i].required %>,
+						<%_ }else {	_%>
+						<%_ } _%>
+						type: '<%=data.nodeDetails[1].columnProperties[i].type %>',
+						<%_ if(data.nodeDetails[1].columnProperties[i].noDataExpression) { _%>
+						noDataExpression: <%=data.nodeDetails[1].columnProperties[i].noDataExpression %>,
+						<%_ }else {	_%>
+						<%_ } _%>
+						<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions) { _%>
+							displayOptions: {
+								show: {
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.resource) { _%>	
+									resource: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.resource %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.operation) { _%>	
+									operation: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.operation %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData) { _%>	
+									typeofData: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData %>'],
+									<%_ }  _%>
+									<%_ } catch (error) { _%>
+									<%_ }	_%>
+									},
+								},
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].routing) { _%>			
+						routing: {
+							request: {
+							<%_ if(data.nodeDetails[1].columnProperties[i].routing.request.method) { _%>
+							method: '<%= data.nodeDetails[1].columnProperties[i].routing.request.method %>',
+							<%_ }  _%>
+							<%_ if(data.nodeDetails[1].columnProperties[i].routing.request.url) { _%>
+							url: '<%= data.nodeDetails[1].columnProperties[i].routing.request.url %>',
+							<%_ }  _%>
+							},
+						},
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						options: [
+						<%_ for(let j = 0; j < data.nodeDetails[1].columnProperties[i].options.length; j++) { _%> 
+							{	
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].name) { _%>			
+								name: '<%= data.nodeDetails[1].columnProperties[i].options[j].name %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+									<%_ if(data.nodeDetails[1].columnProperties[i].options[j].value) { _%>			
+								value: '<%= data.nodeDetails[1].columnProperties[i].options[j].value %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].action) { _%>			
+								action: '<%= data.nodeDetails[1].columnProperties[i].options[j].action %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].description) { _%>			
+								description: '<%= data.nodeDetails[1].columnProperties[i].options[j].description %>',
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+								<%_ try { _%> 	
+								<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing) { _%>			
+								routing: {
+									request: {
+									<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing.request.method) { _%>
+									method: '<%= data.nodeDetails[1].columnProperties[i].options[j].routing.request.method %>',
+									<%_ }  _%>
+									<%_ if(data.nodeDetails[1].columnProperties[i].options[j].routing.request.url) { _%>
+									url: '<%= data.nodeDetails[1].columnProperties[i].options[j].routing.request.url %>',
+									<%_ }  _%>
+									},
+								},
+								<%_ }  _%>
+								<%_ } catch (error) { _%>
+								<%_ }	_%>
+				},
+						<%_ } _%>
+			],
+						default: '<%=data.nodeDetails[1].columnProperties[i].default %>',
+		},
+		<%_ } else if(data.nodeDetails[1].columnProperties[i].type === 'fixedCollection'){ _%>
+			{
+				displayName: '<%=data.nodeDetails[1].columnProperties[i].displayName %>',
+				name: '<%=data.nodeDetails[1].columnProperties[i].name %>',
+				<%_ if(data.nodeDetails[1].columnProperties[i].description) { _%>
+				description: '<%=data.nodeDetails[1].columnProperties[i].description %>',
+				<%_ }else {	_%>
+				<%_ } _%>
+				type: '<%=data.nodeDetails[1].columnProperties[i].type %>',
+				typeOptions: {
+					multipleValues: <%=data.nodeDetails[1].columnProperties[i].typeOptions.multipleValues %>,
+				},
+				<%_ if(data.nodeDetails[1].columnProperties[i].noDataExpression) { _%>
+				noDataExpression: <%=data.nodeDetails[1].columnProperties[i].noDataExpression %>,
+				<%_ }else {	_%>
+				<%_ } _%>
+				<%_ try { _%> 	
+				<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions) { _%>
+				displayOptions: {
+					show: {
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.resource) { _%>	
+						resource: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.resource %>'],
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.resource) { _%>	
+						operation: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.operation %>'],
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData) { _%>	
+						typeofData: ['<%= data.nodeDetails[1].columnProperties[i].displayOptions.show.typeofData %>'],
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						},
+					},
+				<%_ }  _%>
+				<%_ } catch (error) { _%>
+				<%_ }	_%>
+				options: [
+				<%_ for(let j = 0; j < data.nodeDetails[1].columnProperties[i].options.length; j++) { _%> 
+					{	
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].options[j].name) { _%>			
+						name: '<%= data.nodeDetails[1].columnProperties[i].options[j].name %>',
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].options[j].displayName) { _%>			
+						displayName: '<%= data.nodeDetails[1].columnProperties[i].options[j].displayName %>',
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+						<%_ try { _%> 	
+						<%_ if(data.nodeDetails[1].columnProperties[i].options[j].values) { _%>			
+						values: [
+						<%_ for(let k = 0; k < data.nodeDetails[1].columnProperties[i].options[0].values.length; k++) { _%> 
+						{
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].displayName) { _%>			
+							displayName: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].displayName %>',
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].name) { _%>			
+							name: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].name %>',
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].type) { _%>			
+							type: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].type %>',
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].required) { _%>			
+							required: <%= data.nodeDetails[1].columnProperties[i].options[0].values[k].required %>,
+							<%_ }  _%>
+							<%_ } catch (error) { _%>
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].default) { _%>			
+							default: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].default %>',
+							<%_ } else {  _%>
+							default: '',
+							<%_ }  _%>
+							<%_ } catch (error) { _%>						
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].description) { _%>			
+							description: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].description %>',
+							<%_ } else {  _%>
+							description: '',
+							<%_ }  _%>
+							<%_ } catch (error) { _%>						
+							<%_ }	_%>
+							<%_ try { _%> 	
+							<%_ if(data.nodeDetails[1].columnProperties[i].options[0].values[k].routing) { _%>			
+							routing: {
+								send: {
+									property: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].routing.send.property %>',
+									type: '<%= data.nodeDetails[1].columnProperties[i].options[0].values[k].routing.send.type %>'
+								}
+							},
+							<%_ } else {  _%>
+							<%_ }  _%>
+							<%_ } catch (error) { _%>						
+							<%_ }	_%>
+						},
+						<%_ }	_%>
+					],
+						<%_ }  _%>
+						<%_ } catch (error) { _%>
+						<%_ }	_%>
+		},
+				<%_ } _%>
+	],				
+	},
+			<%_ } _%>
+					
+				<%_ } _%>
+	],
+	};	
+	<%_ try { _%> 	
+		<%_ if(data.nodeDetails[0].nodeType === 'P') { _%>		
+			// The function below is responsible for actually doing whatever this node
+			// is supposed to do. In this case, we're just appending the `myString` property
+			// with whatever the user has entered.
+			// You can make async calls and use `await`.
+			async execute(this: IExecuteFunctions): Promise<INodeExecutionData[][]> {
+			const items = this.getInputData();
+	
+			let item: INodeExecutionData;
+			let myString: string;
+	
+			// Iterates over all input items and add the key "myString" with the
+			// value the parameter "myString" resolves to.
+			// (This could be a different value for each item in case it contains an expression)
+			for (let itemIndex = 0; itemIndex < items.length; itemIndex++) {
+				try {
+					myString = this.getNodeParameter('myString', itemIndex, '') as string;
+					item = items[itemIndex];
+	
+					item.json['myString'] = myString;
+				} catch (error) {
+					// This node should never fail but we want to showcase how
+					// to handle errors.
+					if (this.continueOnFail()) {
+						items.push({ json: this.getInputData(itemIndex)[0].json, error, pairedItem: itemIndex });
+					} else {
+						// Adding `itemIndex` allows other workflows to handle this error
+						if (error.context) {
+							// If the error thrown already contains the context property,
+							// only append the itemIndex
+							error.context.itemIndex = itemIndex;
+							throw error;
+						}
+						throw new NodeOperationError(this.getNode(), error, {
+							itemIndex,
+						});
+					}
+				}
+			}	
+			return this.prepareOutputData(items);
+		}			
+		<%_ } else {  _%>
+		<%_ }  _%>
+		<%_ } catch (error) { _%>						
+		<%_ }	_%>		
+	}

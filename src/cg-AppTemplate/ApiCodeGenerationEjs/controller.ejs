@@ -1,0 +1,65 @@
+import { Controller, Get, Post, Body, Patch, Param, Delete,UseGuards} from '@nestjs/common';
+import { <%= relation %>Service } from './<%= relation %>.service';
+import { Prisma } from '@prisma/client';
+import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import { <%= relation.toLowerCase() %>Entity } from './entity/<%= relation %>.entity';
+import { AbilitiesGuard } from 'src/ability/ability.guard';
+import { CheckAbilities } from 'src/ability/ability.decorator';
+import { Action } from 'src/ability/ability.factory';
+
+@Controller('<%= relation.toLowerCase() %>')
+@ApiTags('<%= relation %>')
+export class <%= relation %>Controller {
+  constructor(private readonly <%= relation.toLowerCase() %>Service: <%= relation %>Service) {}
+
+  @Post()
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities({ action: Action.Create, subject: <%= relation.toLowerCase()  %>Entity})
+  @ApiOkResponse({ type: <%= relation.toLowerCase()  %>Entity })
+  create(@Body() create<%= relation %>Dto: Prisma.<%= relation %>CreateInput) {
+    return this.<%= relation.toLowerCase() %>Service.create(create<%= relation %>Dto);
+  }
+
+  @Get()
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities({ action: Action.Read, subject: <%= relation.toLowerCase()  %>Entity})
+  @ApiOkResponse({ type: <%= relation.toLowerCase()  %>Entity , isArray: true})
+  findAll() {
+    return this.<%= relation.toLowerCase() %>Service.findAll();
+  }
+
+<%_ data.forEach((method) => { _%>
+  <%_ if(method.methodName === 'Get') { _%>  
+  @Get('<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>:<%= method.QueryConditions[i].key %><%_ if (i !== method.QueryConditions.length-1) { _%>/<%_ }} _%>')
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities({ action: Action.Read, subject: <%= relation.toLowerCase()  %>Entity})
+  @ApiOkResponse({ type: <%= relation.toLowerCase()  %>Entity })
+  findOne(<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>@Param('<%= method.QueryConditions[i].key %>') <%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><%_ } _%><%_ if (i !== method.QueryConditions.length-1) { _%>,<% }} %>) {
+    return this.<%= relation.toLowerCase() %>Service.findOne(<%_ for (var i=0; i < method.QueryConditions.length; i++) { _%><% if (method.QueryConditions[i].datatype === 'Int'){ %>+<%= method.QueryConditions[i].key %><% } else {%><%= method.QueryConditions[i].key %><%_} _%><%_ if (i !== method.QueryConditions.length-1) { _%>,<% }} %>);
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Put') { _%> 
+  @Patch('<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>:<%= method.QueryConditions[i].key %><%_ if (i !== method.QueryConditions.length-1) { _%>/<%_ }} _%>')
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities({ action: Action.Update, subject: <%= relation.toLowerCase()  %>Entity})
+  @ApiOkResponse({ type: <%= relation.toLowerCase()  %>Entity })
+  update(<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>@Param('<%= method.QueryConditions[i].key %>') <%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><%_ } _%>,<% } %>
+    @Body() update<%= relation %>Dto: Prisma.<%= relation %>UpdateInput) {
+    return this.<%= relation.toLowerCase() %>Service.update(<%_ for (var i=0; i < method.QueryConditions.length; i++) { _%><% if (method.QueryConditions[i].datatype === 'Int'){ %>+<%= method.QueryConditions[i].key %><% } else {%><%= method.QueryConditions[i].key %><%_} _%>,<% } %> update<%= relation %>Dto);
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Delete') { _%> 
+  @Delete('<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>:<%= method.QueryConditions[i].key %><%_ if (i !== method.QueryConditions.length-1) { _%>/<%_ }} _%>')
+  @UseGuards(AbilitiesGuard)
+  @CheckAbilities({ action: Action.Delete, subject: <%= relation.toLowerCase()  %>Entity})
+  @ApiOkResponse({ type: <%= relation.toLowerCase()  %>Entity })
+  remove(<%_ for (var i=0; i < method.QueryConditions.length; i++){ _%>@Param('<%= method.QueryConditions[i].key %>') <%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><%_ } _%><%_ if (i !== method.QueryConditions.length-1) { _%>,<% }} %>) {
+    return this.<%= relation.toLowerCase() %>Service.remove(<%_ for (var i=0; i < method.QueryConditions.length; i++) { _%><% if (method.QueryConditions[i].datatype === 'Int'){ %>+<%= method.QueryConditions[i].key %><% } else {%><%= method.QueryConditions[i].key %><%_} _%><%_ if (i !== method.QueryConditions.length-1) { _%>,<% }} %>);
+  }  
+  <%_ } _%>
+  <%_ }) _%>
+
+}
+

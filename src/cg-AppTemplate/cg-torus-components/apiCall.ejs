@@ -1,0 +1,77 @@
+'use server'
+import axios from "axios"
+const tenantName = 'GSS-DEV'
+const appGroupName = 'Payments'
+const appName = 'Torus'
+const screenName = 'Initiatepayment'
+const version = 'v1'
+const fabricType = 'UF'
+const envDetails: any = JSON.stringify({
+  tenantName,
+  appGroupName,
+  appName,
+  screenName,
+  version,
+  fabricType
+})
+
+let token = '';
+export const getToken = async (username: string, password: string) => {
+  const dataForTokenGen = {
+    grant_type: 'password',
+    client_id: 'Torus',
+    client_secret: 'MG6DXnpK7ZljhcaMCn1uKZGSNZAjWCp8',
+    username: username,
+    password: password
+  }
+  
+  
+  const encodeFormData = (data: any) => {
+    return Object.keys(data)
+      .map(key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key]))
+      .join('&')
+  }
+
+  const config = {
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+      },
+  }
+  
+  try {
+    const response = await axios.post('http://192.168.2.165:8085/realms/GSS-DEV/protocol/openid-connect/token',encodeFormData(dataForTokenGen),config)
+    const responseData = await response.data;
+    token = responseData.access_token;
+    
+    return response.status;
+  } catch (error: any) {
+    console.error('Error getting token:', error.message);
+    throw error // Re-throw the error to propagate it
+  }
+}
+export const securityCheck = async () => {
+  try {
+    const response = await fetch(
+      'http://localhost:3002/UF/CGSecurityCheck',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: envDetails
+      }
+    );
+
+    const responseData = await {
+      status: response.status,
+      response: await response.json()
+    }
+
+    return responseData ;// Return the parsed JSON response data
+  } catch (error: any) {
+    console.error('Error getting token:', error.message);
+    throw error // Re-throw the error to propagate it
+  }
+}
+

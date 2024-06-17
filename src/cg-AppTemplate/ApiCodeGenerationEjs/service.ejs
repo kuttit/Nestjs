@@ -1,0 +1,44 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from 'src/prisma.service';
+
+@Injectable()
+export class <%= relation %>Service {
+  constructor(private readonly prismaService: PrismaService) {}
+
+  async create(create<%= relation %>Dto: Prisma.<%= relation %>CreateInput) {
+    return this.prismaService.<%= relation.toLowerCase() %>.create({ data: create<%= relation %>Dto });
+  }
+
+  async findAll() {
+    return this.prismaService.<%= relation.toLowerCase() %>.findMany({});
+  }
+  
+  <%_ data.forEach((method) => { _%>
+  <%_ if(method.methodName === 'Get') { _%> 
+  async findOne(<%_ for (var i=0; i< method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><% } %><% if (i !== method.QueryConditions.length-1) { %>,<%_ }} _%>) {
+    return this.prismaService.<%= relation.toLowerCase() %>.findUnique({ 
+        where: {<%_ for (var i=0; i<method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %><% if (i !== method.QueryConditions.length-1) { %>,<%_ }} _%> },
+        select: {<%_ for (var i=0; i<method.QueryParams.length; i++){ _%><%= method.QueryParams[i].key %>:true<% if (i !== method.QueryParams.length-1) { %>,<%_ }} _%>}
+     });
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Put') { _%>
+  async update(<%_ for (var i=0; i< method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><% } %>,<%_ } _%> update<%= relation %>Dto: Prisma.<%= relation %>UpdateInput) {
+    return this.prismaService.<%= relation.toLowerCase() %>.update({
+      where: { <%_ for (var i=0; i< method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %><% if (i !== method.QueryConditions.length-1) { %>,<%_ }} _%> },
+      data: update<%= relation %>Dto
+    });
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Delete') { _%>
+  async remove(<%_ for (var i=0; i< method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %>:<% if (method.QueryConditions[i].datatype === 'Int'){ %>number<% } else {%> <%= method.QueryConditions[i].datatype.toLowerCase() %><% } %><% if (i !== method.QueryConditions.length-1) { %>,<%_ }} _%>) {
+    return this.prismaService.<%= relation.toLowerCase() %>.delete({
+      where: { <%_ for (var i=0; i< method.QueryConditions.length; i++){ _%><%= method.QueryConditions[i].key %><% if (i !== method.QueryConditions.length-1) { %>,<%_ }} _%> }
+    });
+  }
+  <%_ } _%>
+  <%_ }) _%>
+}

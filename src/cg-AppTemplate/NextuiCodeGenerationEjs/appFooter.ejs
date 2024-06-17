@@ -1,0 +1,22 @@
+"use client";
+
+import { Footer } from "flowbite-react";
+
+const FooterPage = () =>{
+    return (
+      <%_ for (let i = 0; i < data.components.length; i++) { _%>
+        <%_ if(data.components[i].type==='Footer') { _%>
+        <Footer container >
+            <Footer.Copyright href="<%= data.components[i].brandLink %>" by="<%= data.components[i].brandName %>" year={<%= data.components[i].year %>} />
+            <Footer.LinkGroup>
+              <%_for(let j = 0; j < data.components[i].linkGroup.length; j++) { _%>
+              <Footer.Link href="<%=data.components[i].linkGroup[j].link %>"><%=data.components[i].linkGroup[j].linkName %></Footer.Link>
+              <%_ } _%>
+            </Footer.LinkGroup>
+          </Footer>
+        <%_ } _%>
+      <%_ } _%>
+    );
+}
+
+export default FooterPage

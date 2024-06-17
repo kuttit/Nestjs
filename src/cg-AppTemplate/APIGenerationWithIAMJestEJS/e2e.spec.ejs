@@ -1,0 +1,324 @@
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import { <%= relation %>Controller } from '../src/<%= relation %>/<%= relation %>.controller';
+import { <%= relation %>Service } from '../src/<%= relation %>/<%= relation %>.service';
+import { PrismaService } from '../src/prisma.service';
+import { <%= relation %>, Prisma } from '@prisma/client'; 
+<%_ for (let i = 0; i < data.columns.length; i++) { _%>
+<%_ if ( data.columns[i].relationship) { _%>
+import { <%=data.columns[i].relationship[0].parent  %> } from '@prisma/client'; 
+<%_ }  _%>
+<%_} _%>
+import * as request from 'supertest';
+import { AbilityFactory } from '../src/ability/ability.factory';
+
+describe('<%= relation %>Controller', () => {
+  let controller: <%= relation %>Controller;
+  let service: <%= relation %>Service;
+  let prisma: PrismaService;
+  let app: INestApplication;
+  <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+  <%_ if ( data.columns[i].relationship) { _%>
+  let <%=data.columns[i].relationship[0].parent.toLowerCase()  %>: <%=data.columns[i].relationship[0].parent  %>
+  <%_ }  _%>
+  <%_} _%>
+
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      imports: [],
+      controllers: [<%= relation %>Controller],
+      providers: [<%= relation %>Service, PrismaService,AbilityFactory],
+    }).compile();
+
+    app = module.createNestApplication();
+    await app.init();
+
+    controller = module.get<<%= relation %>Controller>(<%= relation %>Controller);
+    service = module.get<<%= relation %>Service>(<%= relation %>Service);
+    prisma = module.get<PrismaService>(PrismaService);
+
+    
+    <%_ for (let i = 0; i < data2.length; i++) { _%>
+    await prisma.<%=data2[i].toLowerCase()  %>.deleteMany(); 
+    <%_} _%>
+    
+
+    <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+    <%_ if ( data.columns[i].relationship) { _%>
+    <%=data.columns[i].relationship[0].parent.toLowerCase()  %> = await prisma.<%=data.columns[i].relationship[0].parent.toLowerCase()  %>.create({
+    data: {
+      <%_ for (let j = 0; j < data1.Entities.length; j++) { _%>
+        <%_ if(data1.Entities[j].tname === data.columns[i].relationship[0].parent) { _%>
+          <%_ for (let k = 0; k < data1.Entities[j].columns.length; k++) { _%>
+            <%_ if (data1.Entities[j].columns[k].contraints.includes('@default')||data1.Entities[j].columns[k].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data1.Entities[j].columns[k].relationship){ _%>
+                <%= data1.Entities[j].columns[k].cname %>relation: {
+                connect: <%= data1.Entities[j].columns[k].relationship[0].parent.toLowerCase() %>,
+               },
+              <%_} else { _%>
+              <%= data1.Entities[j].columns[k].cname %>:<%_ if(data1.Entities[j].columns[k].datatype.includes('Int')){ _%>1<%_ } else if(data1.Entities[j].columns[k].datatype.includes( 'String')){ _%>'test<%= data1.Entities[j].columns[k].cname %>'<%_ } else if(data1.Entities[j].columns[k].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+              <%_} _%>
+            <%_ } _%>
+          <%_ } _%>
+      <%_ } _%>
+        },
+      }) 
+    <%_ }  _%>
+    <%_} _%>
+  });
+
+  afterEach(async () => {
+    await prisma.$disconnect();
+  });
+
+  <%_ for (let i = 0; i < data.methods.length; i++) { _%>  
+  <%_ if(data.methods[i].methodName ==='GetALL') {_%>  
+  describe('findAll', () => {
+  it('should return an array of <%= relation %>s', async () => {
+    const <%= relation.toLowerCase() %>s: <%= relation %>[] = await controller.findAll();
+    expect(<%= relation.toLowerCase() %>s).toBeDefined();
+    expect(<%= relation.toLowerCase() %>s).toBeInstanceOf(Array);
+  });
+
+  it('/<%= relation.toLowerCase() %> (GET)', () => {
+    return request(app.getHttpServer()).get('/<%= relation.toLowerCase() %>')
+    .set('tenant', 'GSS')
+    .set('appGroup', 'Payments')
+    .set('rkey', 'DF:INT:PAYMENTPOC')
+    .set('user', 'john')
+    .set('userRole', 'Admin')
+    .expect(200);
+  });
+  });  
+   <%_ } else if(data.methods[i].methodName ==='Post') {_%>
+    describe('create', () => {
+      it('should create a <%= relation.toLowerCase() %>', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+          <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+          <%_} else if(data.columns[j].relationship){ _%>
+         <%= data.columns[j].cname %>relation: {
+         connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+        },
+          <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+          <%_} _%>
+          <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        expect(created<%= relation %>).toBeDefined();
+        <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+          <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+          <%_} else if(data.columns[j].relationship){ _%>
+          <%_} else { _%>
+        expect(created<%= relation %>.<%= data.columns[j].cname %>).toEqual(create<%= relation %>Dto.<%= data.columns[j].cname %>);
+          <%_} _%>
+          <%_ } _%>
+      });
+  
+      it('/<%= relation.toLowerCase() %> (POST)', () => {
+        return request(app.getHttpServer())
+          .post('/<%= relation.toLowerCase() %>')
+          .send({
+            <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+              <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+                <%_} else if(data.columns[j].relationship){ _%>
+            <%= data.columns[j].cname %>relation: {
+            connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+            },
+              <%_} else { _%>
+            <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+              <%_} _%>
+              <%_ } _%>
+          })
+          .set('tenant', 'GSS')
+          .set('appGroup', 'Payments')
+          .set('rkey', 'DF:INT:PAYMENTPOC')
+          .set('user', 'john')
+          .set('userRole', 'Admin')
+          .set('Accept', 'application/json')
+          .expect(201);
+      })
+    });
+   <%_ } else if(data.methods[i].methodName ==='Get') {_%>
+    describe('findOne', () => {
+        it('should return a <%= relation.toLowerCase() %> by following parameters: <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%=' ' %><%= data.methods[i].QueryConditions[j].key %>  <%_ } _%>', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },<%_} else if(data.columns[j].relationship){ _%>
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        const <%= relation.toLowerCase() %>: any = await controller.findOne(
+          <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> 
+          created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>,
+          <%_ } _%>
+        );
+  
+        expect(<%= relation.toLowerCase() %>).toBeDefined();
+        <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> 
+        expect(<%= relation.toLowerCase() %>.<%= data.methods[i].QueryConditions[j].key %>).toEqual(created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>);
+        <%_ } _%>
+      });
+  
+      it('/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%='/:' %><%= data.methods[i].QueryConditions[j].key %>  <%_ } _%><%=' '%>(GET)', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        return request(app.getHttpServer())
+        .get(`/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> /${created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %> <%='}' %> <%_ } _%>`)
+        .set('tenant', 'GSS')
+        .set('appGroup', 'Payments')
+        .set('rkey', 'DF:INT:PAYMENTPOC')
+        .set('user', 'john')
+        .set('userRole', 'Admin')
+        .expect(200);
+      });
+    });     
+  <%_   } else if(data.methods[i].methodName ==='Put') {_%> 
+    describe('update', () => {
+      it('should update a <%= relation.toLowerCase() %> by following parameters: <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%=' ' %><%= data.methods[i].QueryConditions[j].key %>  <%_ } _%>', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        const update<%= relation %>Dto: Prisma.<%= relation %>UpdateInput = {
+          <%_ for (let j = 0; j < data.methods[i].QueryParams.length; j++) { _%>
+         <%= data.methods[i].QueryParams[j].key %>: <%_ if(data.methods[i].QueryParams[j].datatype.includes('Int')){ _%>1<%_ } else if(data.methods[i].QueryParams[j].datatype.includes( 'String')){ _%>'testUpdated<%= data.methods[i].QueryParams[j].key %>'<%_ } else if(data.methods[i].QueryParams[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+          <%_ } _%>
+        };
+  
+        const updated<%= relation %>: <%= relation %> = await controller.update(
+          <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> 
+          created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>,
+          <%_ } _%>
+          update<%= relation %>Dto,
+        );
+  
+        expect(updated<%= relation %>).toBeDefined();
+        <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> 
+        expect(updated<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>).toEqual(created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>);
+        <%_ } _%>
+      });
+  
+      it('/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%='/:' %><%= data.methods[i].QueryConditions[j].key %>  <%_ } _%><%=' '%>(PATCH)', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        return request(app.getHttpServer()).patch(`/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> /${created<%= relation %>. <%= data.methods[i].QueryConditions[j].key %> <%='}' %> <%_ } _%>`)
+        .send({<%_ for (let j = 0; j < data.methods[i].QueryParams.length; j++) { _%><%= data.methods[i].QueryParams[j].key %>: <%_ if(data.methods[i].QueryParams[j].datatype.includes('Int')){ _%>1<%_ } else if(data.methods[i].QueryParams[j].datatype.includes( 'String')){ _%>'testUpdated<%= data.methods[i].QueryParams[j].key %>'<%_ } else if(data.methods[i].QueryParams[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,<%_ } _%>})
+        .set('tenant', 'GSS')
+        .set('appGroup', 'Payments')
+        .set('rkey', 'DF:INT:PAYMENTPOC')
+        .set('user', 'john')
+        .set('userRole', 'Admin')
+        .expect(200)
+        .then((res) => {
+          <%_ for (let j = 0; j < data.methods[i].QueryParams.length; j++) { _%>
+          expect(res.body.<%= data.methods[i].QueryParams[j].key %>).toEqual( <%_ if(data.methods[i].QueryParams[j].datatype.includes('Int')){ _%>1<%_ } else if(data.methods[i].QueryParams[j].datatype.includes( 'String')){ _%>'testUpdated<%= data.methods[i].QueryParams[j].key %>'<%_ } else if(data.methods[i].QueryParams[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>);
+          <%_ } _%>
+        });
+      })
+    });
+   <%_ } else if(data.methods[i].methodName ==='Delete') {_%> 
+    describe('remove', () => {
+      it('should delete a <%= relation.toLowerCase() %> by following parameters: <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%=' ' %><%= data.methods[i].QueryConditions[j].key %><%_ } _%>', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+  
+        const created<%= relation %>: <%= relation %> = await controller.create(create<%= relation %>Dto);
+  
+        const deleted<%= relation %>: <%= relation %> = await controller.remove(<%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%>created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>,<%_ } _%>);
+  
+        expect(deleted<%= relation %>).toBeDefined();
+        <%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> 
+        expect(deleted<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>).toEqual(created<%= relation %>.<%= data.methods[i].QueryConditions[j].key %>);
+        <%_ } _%>
+      });
+  
+      it('/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> <%='/:' %><%= data.methods[i].QueryConditions[j].key %>  <%_ } _%><%=' '%> (DELETE)', async () => {
+        const create<%= relation %>Dto: Prisma.<%= relation %>CreateInput = {
+          <%_ for (let j = 0; j < data.columns.length; j++) { _%>
+            <%_ if (data.columns[j].contraints.includes('@default')||data.columns[j].contraints.includes('@updatedAt')) {_%>
+              <%_} else if(data.columns[j].relationship){ _%>
+          <%= data.columns[j].cname %>relation: {
+          connect: <%= data.columns[j].relationship[0].parent.toLowerCase() %>,
+          },
+            <%_} else { _%>
+          <%= data.columns[j].cname %>:<%_ if(data.columns[j].datatype.includes('Int')){ _%>1<%_ } else if(data.columns[j].datatype.includes( 'String')){ _%>'test<%= data.columns[j].cname %>'<%_ } else if(data.columns[j].datatype.includes('DateTime')){ _%><%_new Date() _%><%_ }  _%>,
+            <%_} _%>
+            <%_ } _%>
+        };
+        const created<%= relation %> = await controller.create(create<%= relation %>Dto);
+        return request(app.getHttpServer())
+          .delete(`/<%= relation.toLowerCase() %><%_ for (let j = 0; j < data.methods[i].QueryConditions.length; j++) { _%> /${created<%= relation %>. %><%= data.methods[i].QueryConditions[j].key %> <%='}' %> <%_ } _%>`)
+          .set('Accept', 'application/json')
+          .set('tenant', 'GSS')
+          .set('appGroup', 'Payments')
+          .set('rkey', 'DF:INT:PAYMENTPOC')
+          .set('user', 'john')
+          .set('userRole', 'Admin')
+          .expect('Content-Type', /json/)
+          .expect(200);
+      });
+    });
+  <%_ } _%>
+  <%_ } _%>
+  
+});

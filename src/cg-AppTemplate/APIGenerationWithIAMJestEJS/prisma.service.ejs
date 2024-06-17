@@ -1,0 +1,19 @@
+import {Injectable, OnModuleInit } from "@nestjs/common";
+import { PrismaClient } from "@prisma/client";
+
+@Injectable()
+export class PrismaService extends PrismaClient implements OnModuleInit{
+ 
+     async onModuleInit(){
+          await this.$connect();
+     }
+     <%_ for (let i = 0; i < data.length; i++) { _%>
+          async cleanDbfor<%=data[i]  %>() {
+               await this.$executeRaw`delete from  "<%=data[i]  %>" where 1=1`;
+             } 
+          
+     <%_ } _%>
+     
+}
+
+ 

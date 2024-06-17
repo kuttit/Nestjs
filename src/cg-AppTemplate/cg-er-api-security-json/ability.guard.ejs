@@ -1,0 +1,93 @@
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { AbilityFactory } from './ability.factory';
+import { CHECK_ABILITY, RequiredRule } from './ability.decorator';
+import { ForbiddenError } from '@casl/ability';
+import { JwtServices } from 'src/jwt.service';
+
+@Injectable()
+export class AbilitiesGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private caslabilityFactory: AbilityFactory,
+    private readonly jwtService: JwtServices,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const rules =
+      this.reflector.get<RequiredRule[]>(CHECK_ABILITY, context.getHandler()) ||
+      [];
+
+    const request = context.switchToHttp().getRequest();
+
+    var key = '<%= data %>';
+
+    const token = request.headers.authorization.split(' ')[1];
+    const decodedToken = this.jwtService.decodeToken(token);
+    const details = request.headers;
+    const iss: string = decodedToken.iss;
+    const issParts: string[] = iss.split('/');
+    const tenant = key.split(':')[0];
+    const appGroup = key.split(':')[1];
+    const appName = key.split(':')[2];
+    const userRoles: string[] = [];
+    const orgCode = decodedToken.orgGrp.orgCode;
+    const orgGrpCode = decodedToken.orgGrp.orgGrpCode;
+    const roleCode = decodedToken.roleGrp.roleCode;
+    const roleGrpCode = decodedToken.roleGrp.roleGrpCode;
+    const psCode = decodedToken.psGrp.psCode;
+    const psGrpCode = decodedToken.psGrp.psGrpCode;
+    const roles = decodedToken.realm_access.roles;
+
+    for (let i = 0; i < roles.length; i++) {
+      const role = roles[i];
+      const userRole = role.split('-');
+      if (userRole[1]) userRoles.push(userRole[1]);
+    }
+
+    const ability = this.caslabilityFactory.defineAbility(
+      tenant,
+      appGroup,
+      appName,
+      orgCode,
+      orgGrpCode,
+      roleCode,
+      roleGrpCode,
+      psCode,
+      psGrpCode,
+    );
+
+    if (
+      !tenant &&
+      !appGroup &&
+      !appName &&
+      !orgCode &&
+      !orgGrpCode &&
+      !roleCode &&
+      !roleGrpCode &&
+      !psCode &&
+      !psGrpCode
+    ) {
+      return false;
+    } else {
+      try {
+        rules.forEach((rule) => {
+          ForbiddenError.from(ability).throwUnlessCan(
+            rule.action,
+            rule.subject,
+          );
+        });
+        return true;
+      } catch (error) {
+        if (error instanceof ForbiddenError) {
+          throw new ForbiddenException(error.message);
+        }
+      }
+    }
+  }
+}

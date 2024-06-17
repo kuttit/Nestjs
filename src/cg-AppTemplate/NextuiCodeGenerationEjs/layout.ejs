@@ -1,0 +1,34 @@
+import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
+import Providers from './providers'
+import AppHeader from './components/AppHeader'
+import SideNav from './components/sideNav'
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: '<%= data.layoutName%>',
+  description: '<%= data.layoutDesc%>'
+}
+
+export default function RootLayout({
+  children
+}: {
+  children: React.ReactNode
+}) {
+  return (
+    <html lang='en'>
+      <body className={inter.className}>
+        <Providers>
+          <header className='py-6'>
+            <AppHeader />
+          </header>
+          <main className='flex '>
+            <SideNav/>
+            {children}</main>
+          <footer></footer>
+        </Providers>
+      </body>
+    </html>
+  )
+}

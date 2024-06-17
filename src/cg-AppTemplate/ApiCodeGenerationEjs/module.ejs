@@ -1,0 +1,13 @@
+import { Module } from "@nestjs/common";
+import { <%= relation %>Controller } from "./<%= relation %>.controller";
+import { <%= relation %>Service } from "./<%= relation %>.service";
+import { PrismaService } from "src/prisma.service";
+import { AbilityModule } from "src/ability/ability.module";
+
+@Module({
+     imports: [AbilityModule],
+     controllers: [<%= relation %>Controller],
+     providers: [<%= relation %>Service, PrismaService]
+})
+export class <%= relation %>Module{}
+
