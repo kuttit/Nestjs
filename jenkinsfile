@@ -3,7 +3,7 @@
     
     tools {
         jdk 'jdk17'
-        nodejs 'Node20.0'
+        nodejs 'Node20.0.0'
     }
     
     environment {
