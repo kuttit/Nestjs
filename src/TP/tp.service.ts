@@ -21,14 +21,14 @@ export class TpService {
       const responseFromRedis = await this.redisService.getJsonData(
         `${tenant}:profile`,
       );
-      const envTemplate = tenantProfileTemplate.ENV
+      const envTemplate = tenantProfileTemplate.ENV;
       envTemplate.code = tenant;
-      const updatedTemplate = {...tenantProfileTemplate ,ENV : envTemplate}
+      const updatedTemplate = { ...tenantProfileTemplate, ENV: envTemplate };
       if (responseFromRedis) {
         //send stored Tenant profile data from redis without AppGroups data
         const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const {ENV} = tenantProfileInfo
-        delete ENV.APPS
+        const { ENV } = tenantProfileInfo;
+        delete ENV.APPS;
         return { ...tenantProfileInfo, ENV: ENV };
       } else {
         return { ...updatedTemplate, Code: tenant };
@@ -47,166 +47,18 @@ export class TpService {
       if (responseFromRedis) {
         const existingTenantProfile = JSON.parse(responseFromRedis);
         const { ENV } = existingTenantProfile;
-        UpdatedEnv.APPS = ENV.APPS
+        UpdatedEnv.APPS = ENV.APPS;
         return await this.redisService.setJsonData(
           `${tenant}:profile`,
           JSON.stringify({
-            ...tenantProfileInfo, ENV: UpdatedEnv
+            ...tenantProfileInfo,
+            ENV: UpdatedEnv,
           }),
         );
       } else {
         return await this.redisService.setJsonData(
           `${tenant}:profile`,
           JSON.stringify(tenantProfileInfo),
-        );
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async getAppGroupInfo(tenant: string, appGroup: string) {
-    try {
-      const responseFromRedis = await this.redisService.getJsonData(
-        `${tenant}:profile`,
-      );
-
-      if (responseFromRedis) {
-        const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const existingAgIndex = tenantProfileInfo.AG.findIndex(
-          (ele) => ele.code == appGroup,
-        );
-        if (existingAgIndex != -1) {
-          const data = tenantProfileInfo['AG'][existingAgIndex];
-          return { ...data, APPS: [] };
-        } else {
-          return { ...appGroupTemplate, code: appGroup };
-        }
-      } else {
-        return { ...appGroupTemplate, code: appGroup };
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async postAppGroupInfo(tenant: string, appGroup: string, appGroupObj) {
-    try {
-      const responseFromRedis = await this.redisService.getJsonData(
-        `${tenant}:profile`,
-      );
-      if (responseFromRedis) {
-        const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const existingAgIndex = tenantProfileInfo.AG.findIndex(
-          (ele) => ele.code == appGroup,
-        );
-        if (existingAgIndex != -1) {
-          //replace the existing index with the incoming appgroupObj without changing the APPS array it had already
-          tenantProfileInfo.AG.splice(existingAgIndex, 1, {
-            ...appGroupObj,
-            APPS: tenantProfileInfo.AG[existingAgIndex].APPS,
-          });
-        } else {
-          //push the incoming appgroupObj to the tenantprofile
-          tenantProfileInfo.AG.push(appGroupObj);
-        }
-        //create the tenantProfile data with the updated informations
-        return await this.redisService.setJsonData(
-          `${tenant}:profile`,
-          JSON.stringify(tenantProfileInfo),
-        );
-      } else {
-        const data = { ...tenantProfileTemplate, Code: tenant };
-        data.AG.push(appGroupObj);
-        return await this.redisService.setJsonData(
-          `${tenant}:profile`,
-          JSON.stringify(data),
-        );
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async getAppInfo(tenant: string, appGroup: string, app: string) {
-    try {
-      const responseFromRedis = await this.redisService.getJsonData(
-        `${tenant}:profile`,
-      );
-      if (responseFromRedis) {
-        const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const existingAgIndex = tenantProfileInfo.AG.findIndex(
-          (ele) => ele.code == appGroup,
-        );
-        if (existingAgIndex != -1) {
-          const existingAppIndex = tenantProfileInfo['AG'][existingAgIndex][
-            'APPS'
-          ].findIndex((ele) => ele.code == app);
-          if (existingAppIndex != -1) {
-            const data =
-              tenantProfileInfo['AG'][existingAgIndex]['APPS'][
-                existingAppIndex
-              ];
-            return data;
-          } else {
-            return { ...appTemplate, code: app };
-          }
-        } else {
-          return { ...appTemplate, code: app };
-        }
-      } else {
-        return { ...appTemplate, code: app };
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async postAppInfo(
-    tenant: string,
-    appGroup: string,
-    app: string,
-    appObj: any,
-  ) {
-    try {
-      const responseFromRedis = await this.redisService.getJsonData(
-        `${tenant}:profile`,
-      );
-      if (responseFromRedis) {
-        const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const existingAgIndex = tenantProfileInfo.AG.findIndex(
-          (ele) => ele.code == appGroup,
-        );
-        if (existingAgIndex != -1) {
-          const existingAppIndex = tenantProfileInfo['AG'][existingAgIndex][
-            'APPS'
-          ].findIndex((ele) => ele.code == app);
-          if (existingAppIndex != -1) {
-            tenantProfileInfo['AG'][existingAgIndex]['APPS'].splice(
-              existingAppIndex,
-              1,
-              appObj,
-            );
-          } else {
-            tenantProfileInfo['AG'][existingAgIndex]['APPS'].push(appObj);
-          }
-        } else {
-          const data = { ...appGroupTemplate, code: appGroup };
-          data.APPS.push(appObj);
-          tenantProfileInfo['AG'].push(data);
-        }
-        return await this.redisService.setJsonData(
-          `${tenant}:profile`,
-          JSON.stringify(tenantProfileInfo),
-        );
-      } else {
-        const data = { ...tenantProfileTemplate, Code: tenant };
-        const appGroupData = { ...appGroupTemplate, code: appGroup };
-        appGroupData.APPS.push({ ...appObj });
-        data.AG.push(appGroupData);
-        return await this.redisService.setJsonData(
-          `${tenant}:profile`,
-          JSON.stringify(data),
         );
       }
     } catch (error) {
@@ -259,55 +111,6 @@ export class TpService {
     }
   }
 
-  async createTenant(tenantObj: any) {
-    try {
-      const obj = tenantObj;
-      const mainJSON = await this.redisService.getJsonData('tenantJson');
-      if (mainJSON) {
-        var completeData = JSON.parse(mainJSON);
-
-        if (
-          completeData.hasOwnProperty('TENANT') &&
-          Array.isArray(completeData['TENANT'])
-        ) {
-          const index = completeData['TENANT'].findIndex(
-            (item) => item.Code == obj['Tenant'].Code,
-          );
-          if (index != -1) {
-            return { error: 'Tenant already exists' };
-          } else {
-            completeData['TENANT'].push(obj['Tenant']);
-
-            await this.redisService.setJsonData(
-              'tenantJson',
-              JSON.stringify(completeData),
-            );
-            return { data: 'Tenant created successfully in local setup' };
-          }
-        }
-      } else {
-        return { error: 'Error occured' };
-      }
-    } catch (err) {
-      return { error: 'Error occured' };
-    }
-  }
-
-  async createAppGroup(appGroupObj: any, tenant: string) {
-    try {
-      const obj = appGroupObj;
-      const newAppGroup = obj[tenant].AG;
-      const appGroupName = newAppGroup.code;
-      if (tenant && appGroupName && newAppGroup) {
-        return this.postAppGroupInfo(tenant, appGroupName, newAppGroup);
-      } else {
-        throw new Error('There is not enough details to create AppGroup');
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
   async deleteAppGroup(appGroup: string, tenant: string) {
     try {
       const responseFromRedis = await this.redisService.getJsonData(
@@ -335,58 +138,6 @@ export class TpService {
     }
   }
 
-  async createApp(appObj: any, tenant: string, group: string) {
-    try {
-      const obj = appObj;
-      const newApp = obj[group].APP;
-      const appName = newApp.code;
-      if (tenant && group && newApp && appName) {
-        return this.postAppInfo(tenant, group, appName, newApp);
-      } else {
-        throw new Error('There is not enough data to create new Application');
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async deleteApplication(app: string, appGroup: string, tenant: string) {
-    try {
-      const responseFromRedis = await this.redisService.getJsonData(
-        `${tenant}:profile`,
-      );
-      if (responseFromRedis) {
-        const tenantProfileInfo = JSON.parse(responseFromRedis);
-        const existingAppGroupIndex = tenantProfileInfo.AG.findIndex(
-          (ele) => ele.code == appGroup,
-        );
-        if (existingAppGroupIndex != -1) {
-          const existingAppIndex = tenantProfileInfo['AG'][
-            existingAppGroupIndex
-          ]['APPS'].findIndex((ele) => ele.code == app);
-          if (existingAppIndex != -1) {
-            tenantProfileInfo['AG'][existingAppGroupIndex]['APPS'].splice(
-              existingAppIndex,
-              1,
-            );
-            return await this.redisService.setJsonData(
-              `${tenant}:profile`,
-              JSON.stringify(tenantProfileInfo),
-            );
-          } else {
-            throw new Error('Application not available');
-          }
-        } else {
-          throw new Error('AppGroup not available');
-        }
-      } else {
-        throw new Error('No application available here');
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
   async getAppEnvironment(tenantAndEnv: string, app: string) {
     try {
       const envObjTemplate = {
@@ -402,17 +153,17 @@ export class TpService {
       );
       if (responseFromRedis) {
         var tenantProfileInfo = JSON.parse(responseFromRedis);
-        const {ENV} = tenantProfileInfo
-        if(ENV.APPS){
+        const { ENV } = tenantProfileInfo;
+        if (ENV.APPS) {
           const index = ENV.APPS.findIndex((item) => item.code == app);
           if (index != -1) {
-            const AlterData =  ENV.APPS[index]
+            const AlterData = ENV.APPS[index];
             return AlterData;
           } else {
-            return envObjTemplate
+            return envObjTemplate;
           }
-        } else{
-          return envObjTemplate
+        } else {
+          return envObjTemplate;
         }
       } else {
         throw new Error('There is not enough details to get App Environment');
@@ -423,10 +174,7 @@ export class TpService {
     }
   }
 
-  async postAppEnvironment(
-    tenant: string,
-    envAppObj: any,
-  ) {
+  async postAppEnvironment(tenant: string, envAppObj: any) {
     try {
       const responseFromRedis = await this.redisService.getJsonData(
         `${tenant}:profile`,
@@ -434,19 +182,21 @@ export class TpService {
       if (responseFromRedis) {
         var tenantProfileInfo = JSON.parse(responseFromRedis);
         const { ENV } = tenantProfileInfo;
-        if(ENV.APPS){
-        const existingAppIndex = ENV.APPS.findIndex((item) => item.code == envAppObj.code);
-        if(existingAppIndex != -1){
-          ENV.APPS.splice(existingAppIndex, 1, envAppObj);
+        if (ENV.APPS) {
+          const existingAppIndex = ENV.APPS.findIndex(
+            (item) => item.code == envAppObj.code,
+          );
+          if (existingAppIndex != -1) {
+            ENV.APPS.splice(existingAppIndex, 1, envAppObj);
+          } else {
+            ENV.APPS.push(envAppObj);
+          }
         } else {
-          ENV.APPS.push(envAppObj);
-        }
-        } else {
-          ENV.APPS = [{...envAppObj}];
+          ENV.APPS = [{ ...envAppObj }];
         }
         return await this.redisService.setJsonData(
           `${tenant}:profile`,
-          JSON.stringify({...tenantProfileInfo, ENV:ENV}),
+          JSON.stringify({ ...tenantProfileInfo, ENV: ENV }),
         );
       } else {
         throw new Error('There is not enough details to post App Environment');
@@ -594,61 +344,6 @@ export class TpService {
     }
   }
 
-  async checkTenantInTenantJson(tenant: string) {
-    try {
-      const responseFromRedis =
-        await this.redisService.getJsonData('tenantJson');
-      if (responseFromRedis) {
-        const tenantLevelData = JSON.parse(responseFromRedis);
-        if (
-          tenantLevelData.hasOwnProperty('TENANT') &&
-          Array.isArray(tenantLevelData['TENANT'])
-        ) {
-          const tenantIndex = tenantLevelData['TENANT'].findIndex(
-            (ele) => ele.code == tenant,
-          );
-
-          if (tenantIndex != -1) {
-            return true;
-          } else {
-            return false;
-          }
-        }
-      } else {
-        throw new Error('There is a change in key for tenant level control');
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
-  async createTenantIfnotAvailable(tenant: string) {
-    try {
-      const isExistForVPT = await this.redisService.getJsonData(tenant);
-      if (!isExistForVPT) {
-        await this.redisService.setJsonData(
-          tenant,
-          JSON.stringify({ [tenant]: {} }),
-        );
-      }
-      const isExistInTenantJson = await this.checkTenantInTenantJson(tenant);
-      if (isExistInTenantJson) {
-        return 'tenant already present in Tenant json';
-      } else {
-        return await this.createTenant({
-          Tenant: {
-            Code: tenant,
-            Name: '',
-            Logo: '',
-            AG: [],
-          },
-        });
-      }
-    } catch (error) {
-      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
-    }
-  }
-
   async getORPGroupData(tenant: string, group: group) {
     try {
       const responseFromRedis = await this.redisService.getJsonData(
@@ -699,17 +394,17 @@ export class TpService {
 
   async getSFArtifacts(key: string) {
     try {
-      if(key){
-        const allkeys = await this.redisService.getKeys(`${key}:SF`)
+      if (key) {
+        const allkeys = await this.redisService.getKeys(`${key}:SF`);
         if (Array.isArray(allkeys) && allkeys.length) {
           const data: string[] = allkeys.map((item: string) => {
             return item.split(key)[1].split(':')[2];
           });
           return [...new Set(data)];
-        }else{
-          return []
+        } else {
+          return [];
         }
-      }else{
+      } else {
         throw new Error('key not provided');
       }
     } catch (error) {
@@ -717,19 +412,21 @@ export class TpService {
     }
   }
 
-  async getSFVersion(key: string , artifacts: string) {
+  async getSFVersion(key: string, artifacts: string) {
     try {
-      if(key && artifacts){
-        const allkeys = await this.redisService.getKeys(`${key}:SF:${artifacts}`)
+      if (key && artifacts) {
+        const allkeys = await this.redisService.getKeys(
+          `${key}:SF:${artifacts}`,
+        );
         if (Array.isArray(allkeys) && allkeys.length) {
           const data: string[] = allkeys.map((item: string) => {
             return item.split(key)[1].split(':')[3];
           });
           return [...new Set(data)];
-        }else{
-          return []
+        } else {
+          return [];
         }
-      }else{
+      } else {
         throw new Error('Either key or artifacts not provided');
       }
     } catch (error) {
@@ -739,14 +436,16 @@ export class TpService {
 
   async getSFData(key: string, artifacts: string, version: string) {
     try {
-      if(key&&artifacts&&version){
-        const data = await this.redisService.getJsonData(`${key}:SF:${artifacts}:${version}:summary`)
-        if(data){
-          return JSON.parse(data)
-        }else{
+      if (key && artifacts && version) {
+        const data = await this.redisService.getJsonData(
+          `${key}:SF:${artifacts}:${version}:summary`,
+        );
+        if (data) {
+          return JSON.parse(data);
+        } else {
           throw new Error('Data not found');
         }
-      } else{
+      } else {
         throw new Error('Either key or artifacts or version not provided');
       }
     } catch (error) {
@@ -756,11 +455,330 @@ export class TpService {
 
   async postSFData(key: string, artifacts: string, version: string, data: any) {
     try {
-      if(key&&artifacts&&version&&data){
-        return await this.redisService.setJsonData(`${key}:SF:${artifacts}:${version}:summary`,JSON.stringify(data))
-      } else{
+      if (key && artifacts && version && data) {
+        return await this.redisService.setJsonData(
+          `${key}:SF:${artifacts}:${version}:summary`,
+          JSON.stringify(data),
+        );
+      } else {
         throw new Error('Either key or artifacts or version not provided');
       }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async checkUser(token: string) {
+    try {
+      const payload = await this.jwtService.decode(token, { json: true });
+      if (payload) {
+        return payload.realm_access.roles.includes('portal-admin')
+          ? true
+          : false;
+      } else {
+        throw new Error('Token not valid');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getorggrp() {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const sf = JSON.parse(responseFromRedis);
+        return sf.orgGrp.map((ele) => ({
+          grpName: ele.orgGrpName,
+          grpCode: ele.orgGrpCode,
+        }));
+      } else {
+        throw new Error('Data not found');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+  async getorgFromTSF(code: string) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis && code) {
+        const tsf = JSON.parse(responseFromRedis);
+        if (tsf.orgGrp && Array.isArray(tsf.orgGrp)) {
+          const requiredOrgGrp = tsf.orgGrp.find(
+            (ele: any) => ele.orgGrpCode == code,
+          );
+          if (requiredOrgGrp) {
+            return requiredOrgGrp.org.map((ele: any) => ({
+              code: ele.orgCode,
+              name: ele.orgName,
+            }));
+          } else {
+            throw new Error(
+              'There is no OrgGroup available in the provided OrgGrp code',
+            );
+          }
+        } else {
+          throw new Error('Data not available');
+        }
+      } else {
+        throw new Error('Check the payload containing OrgGrpcode');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getRGFromTSF(orgGrpcode: string, orgCode: string) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const tsf = JSON.parse(responseFromRedis);
+        const requiredOrgGrp = tsf.orgGrp.find(
+          (ele) => ele.orgGrpCode == orgGrpcode,
+        );
+        const requiredOrg = requiredOrgGrp.org.find(
+          (ele) => ele.orgCode == orgCode,
+        );
+        return requiredOrg.roleGrp.map((ele) => ({
+          grpName: ele.roleGrpName,
+          grpCode: ele.roleGrpCode,
+        }));
+      } else {
+        throw new Error('Data not found');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getRoleFromTSF(
+    orgGrpcode: string,
+    orgCode: string,
+    roleGrpCode: string,
+  ) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const tsf = JSON.parse(responseFromRedis);
+        const requiredOrgGrp = tsf.orgGrp.find(
+          (ele) => ele.orgGrpCode == orgGrpcode,
+        );
+        const requiredOrg = requiredOrgGrp.org.find(
+          (ele) => ele.orgCode == orgCode,
+        );
+        const requiredRG = requiredOrg.roleGrp.find(
+          (ele) => ele.roleGrpCode == roleGrpCode,
+        );
+        return requiredRG.roles.map((ele) => ({
+          code: ele.roleCode,
+          name: ele.roleName,
+        }));
+      } else {
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getPSGFromTSF(
+    orgGrpcode: string,
+    orgCode: string,
+    roleGrpCode: string,
+    roleCode: string,
+  ) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const tsf = JSON.parse(responseFromRedis);
+        const requiredOrgGrp = tsf.orgGrp.find(
+          (ele) => ele.orgGrpCode == orgGrpcode,
+        );
+        const requiredOrg = requiredOrgGrp.org.find(
+          (ele) => ele.orgCode == orgCode,
+        );
+        const requiredRG = requiredOrg.roleGrp.find(
+          (ele) => ele.roleGrpCode == roleGrpCode,
+        );
+        const requirdRole = requiredRG.roles.find(
+          (ele) => ele.roleCode == roleCode,
+        );
+        return requirdRole.psGrp.map((ele) => ({
+          grpCode: ele.psGrpCode,
+          grpName: ele.psGrpName,
+        }));
+      } else {
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getPSFromTSF(
+    orgGrpcode: string,
+    orgCode: string,
+    roleGrpCode: string,
+    roleCode: string,
+    psGrpCode: string,
+  ) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const tsf = JSON.parse(responseFromRedis);
+        const requiredOrgGrp = tsf.orgGrp.find(
+          (ele) => ele.orgGrpCode == orgGrpcode,
+        );
+        const requiredOrg = requiredOrgGrp.org.find(
+          (ele) => ele.orgCode == orgCode,
+        );
+        const requiredRG = requiredOrg.roleGrp.find(
+          (ele) => ele.roleGrpCode == roleGrpCode,
+        );
+        const requirdRole = requiredRG.roles.find(
+          (ele) => ele.roleCode == roleCode,
+        );
+
+        const requiredPSG = requirdRole.psGrp.find(
+          (ele) => ele.psGrpCode == psGrpCode,
+        );
+        return requiredPSG.ps.map((ele) => ({
+          code: ele.psCode,
+          name: ele.psName,
+        }));
+      } else {
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getTenantAgApp(
+    orgGrpcode: string,
+    orgCode: string,
+    roleGrpCode: string,
+    roleCode: string,
+    psGrpCode: string,
+    psCode: string,
+  ) {
+    try {
+      const responseFromRedis = await this.redisService.getJsonData('t_sf');
+      if (responseFromRedis) {
+        const tsf = JSON.parse(responseFromRedis);
+
+        const requiredOrgGrp = tsf.orgGrp.find(
+          (ele) => ele.orgGrpCode == orgGrpcode,
+        );
+        const requiredOrg = requiredOrgGrp.org.find(
+          (ele) => ele.orgCode == orgCode,
+        );
+        const requiredRG = requiredOrg.roleGrp.find(
+          (ele) => ele.roleGrpCode == roleGrpCode,
+        );
+        const requirdRole = requiredRG.roles.find(
+          (ele) => ele.roleCode == roleCode,
+        );
+
+        const requiredPSG = requirdRole.psGrp.find(
+          (ele) => ele.psGrpCode == psGrpCode,
+        );
+        const requiredPS = requiredPSG.ps.find((ele) => ele.psCode == psCode);
+        return requiredPS.tenants;
+      } else {
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async processPortal(portal: any) {
+    try {
+      if (portal && typeof portal == 'object' && Array.isArray(portal)) {
+        const processedData = portal.map((item: any) => {
+          if (item.SIFlag == 'A') {
+            return {
+              resourceType: item.resourceType,
+              SIFlag: item.SIFlag,
+              actionAllowed: item.actionAllowed,
+            };
+          } else if (item.SIFlag == 'E') {
+            return {
+              resourceType: item.resourceType,
+              SIFlag: item.SIFlag,
+              actionDenied: item.actionDenied,
+            };
+          }
+        });
+        return processedData;
+      } else {
+        throw new Error('Provided portal data is not valid');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getPortal(token: string) {
+    try {
+      const payload = await this.jwtService.decode(token, { json: true });
+      if (payload) {
+        const { orgGrp, roleGrp, psGrp } = payload;
+
+        const responseFromRedis = await this.redisService.getJsonData('t_sf');
+
+        if (responseFromRedis) {
+          const tsf = JSON.parse(responseFromRedis);
+
+          const requiredOrgGrp = tsf.orgGrp.find(
+            (ele) => ele.orgGrpCode == orgGrp.orgGrpCode,
+          );
+
+          const requiredOrg = requiredOrgGrp.org.find(
+            (ele) => ele.orgCode == orgGrp.orgCode,
+          );
+
+          const requiredRoleGrp = requiredOrg.roleGrp.find(
+            (ele) => ele.roleGrpCode == roleGrp.roleGrpCode,
+          );
+
+          const requiredrole = requiredRoleGrp.roles.find(
+            (ele) => ele.roleCode == roleGrp.roleCode,
+          );
+
+          const requiredPSGrp = requiredrole.psGrp.find(
+            (ele) => ele.psGrpCode == psGrp.psGrpCode,
+          );
+
+          const requiredPS = requiredPSGrp.ps.find(
+            (ele) => ele.psCode == psGrp.psCode,
+          );
+
+          return await this.processPortal(requiredPS.portal);
+        } else {
+          throw new Error('Data not found');
+        }
+      } else {
+        throw new Error('Token not valid');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getValueFromRedis(key: string) {
+    try {
+      if (key) {
+        return await this.redisService.getJsonData(key);
+      } else {
+        throw new Error('key information not available');
+      }
+    } catch (error) {
+      throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async postValueinRedis(key: string, value: string) {
+    try {
+      return await this.redisService.setJsonData(key, JSON.stringify(value));
     } catch (error) {
       throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
     }

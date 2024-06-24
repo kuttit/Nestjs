@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
-const Xid = require('xid-js');
-import 'dotenv/config';
+const  Xid = require('xid-js');
 import { RedisService } from 'src/redisService';
 import { PeCommonService } from './peCommonService';
 import axios from 'axios';
@@ -33,63 +32,182 @@ export class PeService {
   
   async getPeStream(sfkey,key,token) {
     this.logger.log("PE Stream Started")
+    try {
+      //Unique Process Id created for every execution
 
-     //Unique Process Id created for every execution
-     var upId = Xid.next()   
-     var pKey, pId, pToken
+      var upId = Xid.next()   
+      var pKey, pId, pToken
 
-     const PECredentials= {
-      sessionInfo:token,     
-      processInfo: {
-        key: key,
-        pId: upId
+      const PECredentials= {
+        sessionInfo:token,     
+        processInfo: {
+          key: key,
+          pId: upId
+        }
       }
-    }
-    await this.redisService.setStreamData('PEStream', 'PEField', JSON.stringify(PECredentials))
-    var grpInfo = await this.redisService.getInfoGrp('PEStream')
-    if(grpInfo.length == 0){
-      await this.redisService.createConsumerGroup('PEStream','PEGroup')
-    }else if(!grpInfo[0].includes('PEGroup')){
-      await this.redisService.createConsumerGroup('PEStream','PEGroup')    
-    } 
-      let msg1:any = await this.redisService.readConsumerGroup('PEStream','PEGroup','Consumer1');
-      for(var s=0;s<msg1.length;s++){
-        var msgid = msg1[s].msgid;
-        var data = msg1[s].data        
+      await this.redisService.setStreamData('PEStream', 'PEField', JSON.stringify(PECredentials))
+      var grpInfo = await this.redisService.getInfoGrp('PEStream')
+      if(grpInfo.length == 0){
+        await this.redisService.createConsumerGroup('PEStream','PEGroup')
+      }else if(!grpInfo[0].includes('PEGroup')){
+        await this.redisService.createConsumerGroup('PEStream','PEGroup')    
+      } 
+        let msg1:any = await this.redisService.readConsumerGroup('PEStream','PEGroup','Consumer1');
+        for(var s=0;s<msg1.length;s++){
+          var msgid = msg1[s].msgid;
+          var data = msg1[s].data        
 
-          pToken = JSON.parse(data[1]).sessionInfo 
-          pKey = JSON.parse(data[1]).processInfo.key
-          pId = JSON.parse(data[1]).processInfo.pId  
-      }
-     
-      var result:any = await this.getProcess(sfkey,pKey,pId,pToken)
+            pToken = JSON.parse(data[1]).sessionInfo 
+            pKey = JSON.parse(data[1]).processInfo.key
+            pId = JSON.parse(data[1]).processInfo.pId  
+        }
       
-      if(result == 'Success'){
-        await this.redisService.ackMessage('PEStream', 'PEGroup', msgid);
-        return {status:201,data:pKey+pId}
+        var artifact = pKey.split(':')[4]
+       
+        if(artifact == 'SSH'){
+         
+          var sreq = JSON.parse(await this.redisService.getJsonData(key+'nodeProperty')) 
+          if(sreq != null){
+           
+          var robj = {}
+          robj['key'] = pKey
+          robj['upId'] = pId
+          robj['nodeId'] = sreq.nodeId
+          robj['nodeName'] = sreq.nodeName         
+          robj['mode'] = 'E'
+          return await this.comnService.responseData(201,robj)
+          }
+        }
+        else{
+        var result:any = await this.getProcess(sfkey,pKey,pId,pToken)
+
+        if(result == 'Success'){
+          await this.redisService.ackMessage('PEStream', 'PEGroup', msgid);
+          this.logger.log("PE Stream completed")
+          return await this.comnService.responseData(201,key+upId)
+        }
+        else if(result.status == 200){
+          this.logger.log("PE Stream completed")
+          return await this.comnService.responseData(201,result.url)
+        }  
+        else{
+          return result
+        } 
       }
-      else if(result.status == 200){
-        return {status: 201, url:result.url}
-      }  
-      else{
-        return result
-      }
-     
+    } catch (error) {
+      console.log("PE STREAM ERROR: ", error);
+      throw error;
+    }        
     }
  
-  async resumeProcess(key,upid){
-    
-     var nodeInfo = await this.getNodeInfo(key+upid)
-     var nodeId = nodeInfo[0]
-     var arr = nodeInfo[1]  
-
-     var continueResponse = await this.Processor(key,upid,nodeId,arr)    
-    // await this.pfPostProcess(key, upid);     
-     console.log(continueResponse);
+  async staticCodeExec(sfkey,key,upId,nodeId,nodeName,reqdata,token){
+    this.logger.log("static code execution started")
+    try{
+   // var sdata = await this.getPid(token,key)  
+    var sreq = JSON.parse(await this.redisService.getJsonData(key+'nodeProperty')) 
      
-     if(continueResponse == 'Success'){    
-      return { status: 201, data: key + upid };
-     }
+    var placeholder = {"request":{},"response":{},"exception":{}}   
+    await this.redisService.setJsonData(key + upId + ':NPC:' + nodeName + '.PRE', JSON.stringify(placeholder)) 
+    await this.redisService.setJsonData(key + upId + ':NPC:' + nodeName + '.PRO', JSON.stringify(placeholder)) 
+    await this.redisService.setJsonData(key + upId + ':NPC:' + nodeName + '.PST', JSON.stringify(placeholder)) 
+    if(sreq.nodeType == "postnode"){   
+       await this.redisService.setJsonData(key+'nodeProperty',JSON.stringify(reqdata),'data.pro.request') 
+       await this.redisService.setJsonData(key + upId + ':NPC:' + nodeName + '.PRO',JSON.stringify(reqdata),'request')    
+      var url = sreq.execution.pro.url      
+      var resdata = await this.comnService.postCall(url,JSON.stringify(reqdata))     
+      await this.redisService.setJsonData(key+'nodeProperty',JSON.stringify(resdata),'data.pro.response')
+      await this.redisService.setJsonData(key +upId + ':NPC:' + nodeName + '.PRO',JSON.stringify(resdata),'response')          
+    }
+    var deci = {};
+    deci['nodeName'] = sreq.nodeName;
+    deci['nodeId'] = sreq.nodeId;
+    deci['nodeType'] = sreq.nodeType;
+    deci['request'] = reqdata;
+    deci['response'] = resdata; 
+    await this.redisService.setStreamData('TElogs', key + upId, JSON.stringify(deci));  
+    return await this.comnService.responseData(201,key + upId)
+  
+  }
+  catch(err){
+    var exception = await this.comnService.commonErrorLogs('TE',token,key,err,err.status)
+    throw exception
+  }
+  }
+
+  async getPid(token,key){
+    try{
+    var upId = Xid.next()   
+      var pKey, pId, pToken
+
+      const PECredentials= {
+        sessionInfo:token,     
+        processInfo: {
+          key: key,
+          pId: upId
+        }
+      }
+      await this.redisService.setStreamData('PEStream', 'PEField', JSON.stringify(PECredentials))
+      var grpInfo = await this.redisService.getInfoGrp('PEStream')
+      if(grpInfo.length == 0){
+        await this.redisService.createConsumerGroup('PEStream','PEGroup')
+      }else if(!grpInfo[0].includes('PEGroup')){
+        await this.redisService.createConsumerGroup('PEStream','PEGroup')    
+      } 
+        let msg1:any = await this.redisService.readConsumerGroup('PEStream','PEGroup','Consumer1');
+        for(var s=0;s<msg1.length;s++){
+          var msgid = msg1[s].msgid;
+          var data = msg1[s].data        
+
+            pToken = JSON.parse(data[1]).sessionInfo 
+            pKey = JSON.parse(data[1]).processInfo.key
+            pId = JSON.parse(data[1]).processInfo.pId  
+        }
+      //  return {token:pToken,key:pKey,upId:pId}
+        return {pToken,pKey,pId}
+      }catch(err){
+        var exception = await this.comnService.commonErrorLogs('TE',token,key,err,err.status)
+        throw exception
+      }
+  }
+  async resumeProcess(sfkey,key,upid,token){
+    
+    const decoded =  this.jwtService.decode(token,{ json: true })     
+    var psjson:any = await this.comnService.getSecurityJson(sfkey,decoded);    
+    if(typeof psjson !== 'object') {
+      return psjson
+    }
+    var sjson = await this.commonService.getPSJson(key,decoded,psjson)       
+          
+    if(typeof sjson !== 'object') {
+      return sjson
+    }
+    var incomingarr = sjson['PFaction']   
+    var flag = sjson['PFflag']
+    var permit
+    if(flag == 'E') {
+      permit = incomingarr.includes('Resume') || incomingarr.includes('*')
+      if(permit){
+        return {status:400,err:"Permission Denied to Resume"}  
+      }   
+    } else if(flag == 'A') {
+      permit = incomingarr.includes('Resume') || incomingarr.includes('*')    
+      if(!permit)
+        return {status:400,err:"Permission Denied to Resume"}
+      else{
+        var nodeInfo = await this.getNodeInfo(key+upid)
+        var nodeId = nodeInfo[0]
+        var arr = nodeInfo[1]  
+   
+        var continueResponse = await this.Processor(key,upid,nodeId,arr,sjson['Node'])    
+       // await this.pfPostProcess(key, upid);     
+        console.log(continueResponse);
+        
+        if(continueResponse == 'Success'){    
+         return { status: 201, data: key + upid };
+        }
+      }
+    }
+     
   }
 
   async getNodeInfo(feild:any){   
@@ -113,7 +231,7 @@ export class PeService {
    return response;  
   } 
 
-  async Processor(key,upId,nodeId,arr) {
+  async Processor(key,upId,nodeId,arr,nodeDetails) {
     this.logger.log('Continue Pf Processor started!');   
     try{       
     var nodeid = nodeId
@@ -129,179 +247,173 @@ export class PeService {
 
       // Humantask node
       if (nodeid == pfjson[i].nodeId && pfjson[i].nodeType == 'humantasknode' && (pfjson[i].nodeType != 'startnode' || pfjson[i].nodeType != 'endnode')) { 
-        try{
-        this.logger.log("Humantask node started...")      
-          var obj = {};
-          obj['nodeid'] = pfjson[i].nodeId;
-          obj['nodename'] = pfjson[i].nodeName;
-          obj['nodetype'] = pfjson[i].nodeType;                     
-          if(!nodeIdChk.includes(pfjson[i].nodeId)){
-            arr.push(obj);       
-          }           
-         
-          var fdataReq = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId+'.data.pro.request'));
-          var fdataRes = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId+'.data.pro.response'));       
-                 
-          for(var y=0; y<pfjson.length; y++){  
-            if(pfjson[y].nodeType == "apinode" || pfjson[y].nodeType == "decisionnode")
-                await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(fdataRes), pfjson[y].nodeId+'.data.pro.request')             
-          } 
-          var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+ '.data.pro');  
-          await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO',setData)                                  
-          var deci = {};
-          deci['nodeName'] = pfjson[i].nodeName;  
-          deci['nodeId']=pfjson[i].nodeId;
-          deci['nodeType']=pfjson[i].nodeType;       
-          deci['request']  = fdataReq
-          deci['response'] = fdataRes 
-
-          await this.redisService.setStreamData('PElogs', key+upId, JSON.stringify(deci)); 
-          this.logger.log(fdataReq)
-          this.logger.log(fdataRes)
-          nodeid = pfjson[i].routeArray[0].nodeId; 
-         
-          this.logger.log("Humantask node completed...")       
-        }catch(err)
-        {          
-          var errorobj = await this.commonService.errorobj(err) 
-          errorobj['nodeName'] = pfjson[i].nodeName
-          errorobj['nodeId'] = pfjson[i].nodeId 
-          errorobj['previousArray'] = obj
-          await this.redisService.setStreamData('TPEExceptionlogs', key+upId, JSON.stringify(errorobj))
-          await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO', JSON.stringify(errorobj),'exception')
-          errorobj['key']=key
-          errorobj['upId']=upId
-          throw new BadRequestException(errorobj)
+        var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,pfjson[i].nodeName)        
+        if(nodeSjson == true){        
+          try{
+          this.logger.log("Humantask node started...")      
+            var obj = {};
+            obj['nodeid'] = pfjson[i].nodeId;
+            obj['nodename'] = pfjson[i].nodeName;
+            obj['nodetype'] = pfjson[i].nodeType;                     
+            if(!nodeIdChk.includes(pfjson[i].nodeId)){
+              arr.push(obj);       
+            }           
+          
+            var fdataReq = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId+'.data.pro.request'));
+            var fdataRes = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId+'.data.pro.response'));       
+                  
+            for(var y=0; y<pfjson.length; y++){  
+              if(pfjson[y].nodeType == "apinode" || pfjson[y].nodeType == "decisionnode")
+                  await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(fdataRes), pfjson[y].nodeId+'.data.pro.request')             
+            } 
+            var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+ '.data.pro');  
+            await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO',setData)                                  
+            
+            //logging execution in PElogs
+            await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,fdataReq,fdataRes)
+            
+            nodeid = pfjson[i].routeArray[0].nodeId; 
+          
+            this.logger.log("Humantask node completed...")       
+          }catch(error)
+          {          
+            //logging Technical Exception in TPEExceptionlogs
+            var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson[i].nodeName,pfjson[i].nodeId,arr,key,upId,'NPC','PRO')
+            throw new BadRequestException(exception)
+          }
+        }else{
+          //logging Security Exception in TPEExceptionlogs
+          var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+          throw new UnauthorizedException(secException)
         }
       }
      
       // Decision Node
       if (nodeid == pfjson[i].nodeId && pfjson[i].nodeType == 'decisionnode' && (pfjson[i].nodeType != 'startnode' || pfjson[i].nodeType != 'endnode')) { 
         this.logger.log("decision node execution started...")
-        try{  
-          var obj = {};
-          obj['nodeid'] = pfjson[i].nodeId;
-          obj['nodename'] = pfjson[i].nodeName;
-          obj['nodetype'] = pfjson[i].nodeType;
-          if(!nodeIdChk.includes(pfjson[i].nodeId)){
-            arr.push(obj);       
-          }
-          var decirequest          
-          var resData; 
-          var cmresult = {}
-          var deciresult = {statuscode: 200,status: 'SUCCESS'}
-
-          var currNode = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);                         
-        
-          var ruleChk = JSON.parse(currNode).rule         
-          if(ruleChk){
-            var zenresult = await this.commonService.zenrule(key,ruleChk,pfjson[i].nodeId)               
-          }  
-          var c=0;
-          var custconf = JSON.parse(currNode).customCode 
-          if(custconf){            
-            if(custconf.request.code){
-              var codedata = custconf.request.code
-              var coderesult = await this.commonService.customCodeProcess(key,codedata,arr);
-              c=1;
-              var cusCodeResponse = {"CustomCodeResult":coderesult}   
-            }
-          }
-          var m = 0;
-          var mapper = JSON.parse(currNode).mapper
-          if(mapper){
-            if(mapper.pre.mapData){
-              let preRequest = JSON.parse(currNode).mapper.pre.request
-              let preResponse = JSON.parse(currNode).mapper.pre.response
-              let preMapData = JSON.parse(currNode).mapper.pre.mapData
-              let mapperResult = await this.commonService.mapper(preRequest, preResponse,preMapData)
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult};                
-            }    
-            if(mapper.pro.mapData){
-              let proRequest = JSON.parse(currNode).mapper.pro.request
-              let proResponse = JSON.parse(currNode).mapper.pro.response
-              let proMapData = JSON.parse(currNode).mapper.pro.mapData
-              let mapperResult = await this.commonService.mapper(proRequest, proResponse,proMapData)
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult};                  
-            }  
-            if(mapper.pst.mapData){
-              let pstRequest = JSON.parse(currNode).mapper.pst.request
-              let pstResponse = JSON.parse(currNode).mapper.pst.response
-              let pstMapData = JSON.parse(currNode).mapper.pst.mapData
-              let mapperResult = await this.commonService.mapper(pstRequest, pstResponse,pstMapData )
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult}; 
-            }     
-          }    
-             
-            if(c==1)
-              cmresult = Object.assign(cusCodeResponse)
-            if(m==1)
-              cmresult = Object.assign(cmresult,mapperResponse)
-  
-            for (var k = 0; k < pfjson[i].routeArray.length; k++) {   
-              // check the rule engine result with process flow result of identification of next node        
-              if (pfjson[i].routeArray[k].conditionResult == zenresult) {                
-                deciresult = Object.assign(deciresult,pfjson[i].routeArray[k])                
-                if(Object.keys(cmresult).length>0) 
-                  deciresult =  Object.assign(deciresult,cmresult)
-                await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(deciresult), pfjson[i].nodeId+'.data.pro.response');  
-                        
-                var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+ '.data.pro'); 
-                await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO',setData)                            
-            
-               decirequest = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+'.data.pro.request'))          
-               resData = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+'.data.pro.response')); 
-              
-               nodeid = pfjson[i].routeArray[k].nodeId;  
-               var deci = {};
-                deci['nodeName']=pfjson[i].nodeName;
-                deci['request'] = decirequest       
-                deci['response'] = resData 
-                deci['nodeId']=pfjson[i].nodeId;
-                deci['nodeType']=pfjson[i].nodeType;      
-                      
-              await this.redisService.setStreamData('PElogs', key+upId, JSON.stringify(deci)); 
-              this.logger.log(decirequest)
-              this.logger.log(resData)
-              this.logger.log("decision node execution completed..")                     
-              break
+        var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,pfjson[i].nodeName)
+        if(nodeSjson == true){       
+          try{  
+              var obj = {};
+              obj['nodeid'] = pfjson[i].nodeId;
+              obj['nodename'] = pfjson[i].nodeName;
+              obj['nodetype'] = pfjson[i].nodeType;
+              if(!nodeIdChk.includes(pfjson[i].nodeId)){
+                arr.push(obj);       
               }
-            }
-        
-        }catch(error){
-          var errorobj = await this.commonService.errorobj(error) 
-          errorobj['nodeName'] = pfjson[i].nodeName
-          errorobj['nodeId'] = pfjson[i].nodeId 
-          errorobj['previousArray'] = obj
-          await this.redisService.setStreamData('TPEExceptionlogs', key+upId, JSON.stringify(errorobj))    
-          await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO', JSON.stringify(errorobj),'exception')
-          errorobj['key']=key
-          errorobj['upId']=upId
-          throw new BadRequestException(errorobj)
-        }       
+              var decirequest          
+              var resData; 
+              var cmresult = {}
+              var deciresult = {statuscode: 200,status: 'SUCCESS'}
+
+              var currNode = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);                         
+            
+              var ruleChk = JSON.parse(currNode).rule         
+              if(ruleChk){
+                var zenresult = await this.commonService.zenrule(key,ruleChk,pfjson[i].nodeId)               
+              }  
+              var c=0;
+              var custconf = JSON.parse(currNode).customCode 
+              if(custconf){            
+                if(custconf.request.code){
+                  var codedata = custconf.request.code
+                  var coderesult = await this.commonService.customCodeProcess(key,codedata,arr);
+                  c=1;
+                  var cusCodeResponse = {"CustomCodeResult":coderesult}   
+                }
+              }
+              var mpre,mpro,mpst = 0;    
+     
+              var mapper = JSON.parse(currNode).mapper   
+              if (mapper) {                    
+                if(Object.keys(mapper.pre.mapData).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pre
+                  var premapperResult = await this.commonService.getMapper(mapperconfig) 
+                  mpre = 1;        
+                 
+                }         
+                if(Object.keys(mapper.pro.mapData ).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pro
+                  var promapperResult = await this.commonService.getMapper(mapperconfig) 
+                  mpro = 1;         
+                }      
+                if(Object.keys( mapper.pst.mapData).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pst
+                  var pstmapperResult = await this.commonService.getMapper(mapperconfig) 
+                  mpst = 1;        
+                }
+              }
+              
+                if(c==1)
+                  cmresult = Object.assign(cusCodeResponse)
+                if (mpre == 1)
+                  cmresult = Object.assign(cmresult, premapperResult)
+                if (mpro == 1)
+                  cmresult = Object.assign(cmresult, promapperResult)
+                if (mpst == 1)
+                  cmresult = Object.assign(cmresult, pstmapperResult)
+      
+                for (var k = 0; k < pfjson[i].routeArray.length; k++) {   
+                  // check the rule engine result with process flow result of identification of next node        
+                  if (pfjson[i].routeArray[k].conditionResult == zenresult) {                
+                    deciresult = Object.assign(deciresult,pfjson[i].routeArray[k])                
+                    if(Object.keys(cmresult).length>0) 
+                      deciresult =  Object.assign(deciresult,cmresult)
+                    await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(deciresult), pfjson[i].nodeId+'.data.pro.response');  
+                            
+                    var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+ '.data.pro'); 
+                    await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson[i].nodeName +'.PRO',setData)                            
+                
+                  decirequest = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+'.data.pro.request'))          
+                  resData = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+pfjson[i].nodeId+'.data.pro.response')); 
+                  
+                  nodeid = pfjson[i].routeArray[k].nodeId;
+
+                  //logging execution in PElogs
+                  await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,decirequest,resData)
+                 
+                  this.logger.log("decision node execution completed..")                     
+                  break
+                  }
+                }
+            
+          }catch(error){
+            //logging Technical Exception in TPEExceptionlogs
+            var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson[i].nodeName,pfjson[i].nodeId,arr,key,upId,'NPC','PRO')
+            throw new BadRequestException(exception)
+          }    
+        }else{
+          //logging Security Exception in TPEExceptionlogs
+          var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+          throw new UnauthorizedException(secException)
+        }   
       }        
    
       // Api Node
       if (nodeid == pfjson[i].nodeId && pfjson[i].nodeType == 'apinode' && pfjson[i].nodeType != 'startnode' && pfjson[i].nodeType != 'endnode') {
-       
-        this.logger.log("Api Node execution started")    
-       
-        var obj = {};
-        obj['nodeid'] = pfjson[i].nodeId;
-        obj['nodename'] = pfjson[i].nodeName;
-        obj['nodetype'] = pfjson[i].nodeType;
-        if(!nodeIdChk.includes(pfjson[i].nodeId)){
-          arr.push(obj);       
-        }     
-          await this.nodePreProcess(key,pfjson[i],upId)
-          await this.nodeProcess(key,pfjson[i],arr,upId)
-          await this.nodePostProcess(key,pfjson[i],upId)
+        var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,pfjson[i].nodeName)
          
-        nodeid = pfjson[i].routeArray[0].nodeId;       
-        this.logger.log("Api Node execution completed") 
+        if(nodeSjson == true){
+            this.logger.log("Api Node execution started")    
+          
+            var obj = {};
+            obj['nodeid'] = pfjson[i].nodeId;
+            obj['nodename'] = pfjson[i].nodeName;
+            obj['nodetype'] = pfjson[i].nodeType;
+            if(!nodeIdChk.includes(pfjson[i].nodeId)){
+              arr.push(obj);       
+            }     
+            await this.nodePreProcess(key,pfjson[i],upId)
+            await this.nodeProcess(key,pfjson[i],arr,upId)
+            await this.nodePostProcess(key,pfjson[i],upId)
+            
+            nodeid = pfjson[i].routeArray[0].nodeId;       
+            this.logger.log("Api Node execution completed") 
+        }else{
+          //logging Security Exception in TPEExceptionlogs
+          var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+          throw new UnauthorizedException(secException) 
+        }
       }      
      
       //  End Node
@@ -312,13 +424,8 @@ export class PeService {
         obj['nodetype'] = pfjson[i].nodeType;
         arr.push(obj);      
                  
-        var deci = {};
-        deci['nodeName'] = pfjson[i].nodeName;
-        deci['nodeId']=pfjson[i].nodeId;
-        deci['nodeType']=pfjson[i].nodeType;  
-        
-        //logging End nodename in stream
-        await this.redisService.setStreamData('PElogs', key+upId, JSON.stringify(deci)); 
+        // //logging End nodename in stream
+        await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType)
         break;    
       }
     }    
@@ -326,8 +433,7 @@ export class PeService {
     await this.redisService.setJsonData(key+'response',JSON.stringify(arr))
     return 'Success'
 
-    }catch(error){  
-    
+    }catch(error){      
       throw error; 
     }   
   }
@@ -348,7 +454,7 @@ export class PeService {
       }
     } 
     }catch(error){
-    var errorobj = await this.commonService.errorobj(error)    
+    var errorobj = await this.comnService.errorobj('TE',error,error.status)    
     await this.redisService.setStreamData('TPEExceptionlogs', key+upId, JSON.stringify(errorobj)) 
     await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson.nodeName +'.PRE', JSON.stringify(errorobj),'exception')
     return error  
@@ -377,49 +483,34 @@ export class PeService {
             z=1; 
             var zenResponse = {"ZenResult":zenresult}                  
           }   
-          var m = 0;
-          var mapper = JSON.parse(currNode).mapper
-          if(mapper){
-            if(mapper.pre.mapData){
-              let preRequest = JSON.parse(currNode).mapper.pre.request
-              let preResponse = JSON.parse(currNode).mapper.pre.response
-              let preMapData = JSON.parse(currNode).mapper.pre.mapData
-              let mapperResult = await this.commonService.mapper(preRequest, preResponse,preMapData)
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult};              
-            }    
-            if(mapper.pro.mapData){
-              let proRequest = JSON.parse(currNode).mapper.pro.request
-              let proResponse = JSON.parse(currNode).mapper.pro.response
-              let proMapData = JSON.parse(currNode).mapper.pro.mapData
-              let mapperResult = await this.commonService.mapper(proRequest, proResponse,proMapData)
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult};              
-            }  
-            if(mapper.pst.mapData){
-              let pstRequest = JSON.parse(currNode).mapper.pst.request
-              let pstResponse = JSON.parse(currNode).mapper.pst.response
-              let pstMapData = JSON.parse(currNode).mapper.pst.mapData
-              let mapperResult = await this.commonService.mapper(pstRequest, pstResponse,pstMapData )
-              m = 1;
-              var mapperResponse = {"MapperResult":mapperResult};             
-            }     
-          }                 
-          var data;         
+          var mpre,mpro,mpst = 0;
+          var mapper = JSON.parse(currNode).mapper   
+          if (mapper) {                    
+            if(Object.keys(mapper.pre.mapData).length > 0){
+              var mapperconfig = JSON.parse(currNode).mapper.pre
+              var premapperResult = await this.commonService.getMapper(mapperconfig) 
+              mpre = 1;        
+            
+            }         
+            if(Object.keys(mapper.pro.mapData ).length > 0){
+              var mapperconfig = JSON.parse(currNode).mapper.pro
+              var promapperResult = await this.commonService.getMapper(mapperconfig) 
+              mpro = 1;         
+            }      
+            if(Object.keys( mapper.pst.mapData).length > 0){
+              var mapperconfig = JSON.parse(currNode).mapper.pst
+              var pstmapperResult = await this.commonService.getMapper(mapperconfig) 
+              mpst = 1;        
+            }
+          }             
+              
           var inputparams = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson.nodeId+'.data.pro.request'))   
           
           var url = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson.nodeId+'.execution.pro.url'))   
                
-           if(Object.keys(inputparams).length > 0){
-            try {              
-              const postres = await axios.post(url, inputparams)
-              data = postres.data
-            } catch (error) {
-              console.log('Error occurred while posting data:', error);
-              await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson.nodeName +'.PRO', JSON.stringify(error),'exception')
-              throw error
-            }                                      
-           }          
+           if (Object.keys(inputparams).length > 0 ) {
+             var data = await this.postapicall(url, inputparams, key, pfjson.nodeName, upId)
+           }      
              
            var cmresult = {}
            var apiresult =  {statuscode: 200,status: 'SUCCESS'}
@@ -427,16 +518,19 @@ export class PeService {
             cmresult = Object.assign(zenResponse) 
           if(c==1)
             cmresult = Object.assign(cmresult,cusCodeResponse)           
-          if(m == 1)
-            cmresult = Object.assign(cmresult,mapperResponse)           
+          if (mpre == 1)
+            cmresult = Object.assign(cmresult, premapperResult)
+          if (mpro == 1)
+            cmresult = Object.assign(cmresult, promapperResult)
+          if (mpst == 1)
+            cmresult = Object.assign(cmresult, pstmapperResult)         
          
           apiresult = Object.assign(apiresult,data)
           if(Object.keys(cmresult).length>0)  
             apiresult = Object.assign(apiresult,cmresult)           
-
-           if(data != true){          
+       
             await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(apiresult), pfjson.nodeId+ '.data.pro.response') 
-          }
+         
         var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson.nodeId+ '.data.pro'); 
         await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson.nodeName +'.PRO',setData) 
         // IPC set
@@ -449,24 +543,12 @@ export class PeService {
        
         var setData = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson.nodeId+ '.data.pro.response'))
       
-        var deci = {};
-        deci['nodeName']=pfjson.nodeName;
-        deci['nodeId']=pfjson.nodeId;
-        deci['nodeType']=pfjson.nodeType;  
-        deci['request'] = req
-        deci['response'] = apiresult
-     
-      await this.redisService.setStreamData('PElogs',  key+upId, JSON.stringify(deci)); 
+      
+      await this.commonService.getPElogs(key, upId, pfjson.nodeName,pfjson.nodeId,pfjson.nodeType,req,apiresult)
       }catch(error){   
-        var errorobj = await this.commonService.errorobj(error) 
-        errorobj['nodeName'] = pfjson.nodeName
-        errorobj['nodeId'] = pfjson.nodeId 
-        errorobj['previousArray'] = arr
-        await this.redisService.setStreamData('TPEExceptionlogs', key+upId, JSON.stringify(errorobj))
-        await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson.nodeName +'.PRO', JSON.stringify(errorobj),'exception')
-        errorobj['key']=key
-        errorobj['upId']=upId
-        throw new BadRequestException(errorobj)
+        //logging Technical Exception in TPEExceptionlogs
+        var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson.nodeName,pfjson.nodeId,arr,key,upId,'NPC','PRO')
+        throw new BadRequestException(exception)
       }      
   }
 
@@ -486,7 +568,7 @@ export class PeService {
           }
         }   
       }catch(error){  
-        var errorobj = await this.commonService.errorobj(error) 
+        var errorobj = await this.comnService.errorobj('TE',error,error.status) 
         await this.redisService.setStreamData('TPEExceptionlogs', key+upId,JSON.stringify(errorobj))
         await this.redisService.setJsonData(key+upId+':NPC:'+ pfjson.nodeName +'.PRO', JSON.stringify(errorobj),'exception')
         return error
@@ -504,7 +586,7 @@ export class PeService {
     var keys = await this.redisService.getKeys(key + upId)
     for (var k = 0; k < keys.length; k++) {
       await this.redisService.expire(keys[k],1000)
-    }//86400 secs = 1 day 'Datafabrics:TorusPOC:StreamTest:v2:cr5tw08ezv8jbt7173jg:NPC:Input.PST',
+    }                                  //86400 secs = 1 day 'Datafabrics:TorusPOC:StreamTest:v2:cr5tw08ezv8jbt7173jg:NPC:Input.PST',
                                       //18000 secs = 5 hrs
                                        
   }
@@ -535,33 +617,46 @@ export class PeService {
      it will returns either URL or success message   
      @param key - The key used to identify the process flow.
   */
-  async returnformdata(key, upId) {
-    this.logger.log("Return formData started")
-    const json = await this.redisService.getJsonData(key + 'processFlow');
-    var pfjson: any = JSON.parse(json);
-    for (var i = 0; i < pfjson.length; i++) {
-      if (pfjson[i].nodeType == 'humantasknode') {
-        var mconfig = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro')
-
-        var formdata = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.execution.pro.url'))
-
-        this.logger.log(formdata)
-        var robj = {}
-        robj['key'] = key
-        robj['upId'] = upId
-        robj['nodeId'] = pfjson[i].nodeId
-        robj['nodeName'] = pfjson[i].nodeName
-        robj['url'] = formdata
-        robj['mode'] = 'E'
-
-        //returns the URL if request data doesn't exist       
-        var req = JSON.parse(mconfig).response
-        if (Object.keys(req).length == 0) {
-          return robj;
+  async returnformdata(key, upId,nodeDetails) {
+      this.logger.log("Return formData executed")
+      const json = await this.redisService.getJsonData(key + 'processFlow');
+      var pfjson: any = JSON.parse(json);
+      for (var i = 0; i < pfjson.length; i++) {
+        if (pfjson[i].nodeType == 'humantasknode') {
+          var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,pfjson[i].nodeName)
+          if(nodeSjson == true){
+            var mconfig = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro')
+            var formdata = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.execution.pro.url'))
+  
+            this.logger.log(formdata)
+            var robj = {}
+            robj['key'] = key
+            robj['upId'] = upId
+            robj['nodeId'] = pfjson[i].nodeId
+            robj['nodeName'] = pfjson[i].nodeName
+            robj['url'] = formdata
+            robj['mode'] = 'E'
+  
+            //returns the URL if request data doesn't exist       
+            var req = JSON.parse(mconfig).response
+            if (Object.keys(req).length == 0) {
+              return robj;
+            }
+          } 
+          else{
+              var errorobj = await this.comnService.errorobj('TE','Permission Restricted to Execute the '+pfjson[i].nodeName,403)  
+              errorobj['errorCategory'] = 'Security'
+              errorobj['nodeName'] = pfjson[i].nodeName
+              errorobj['nodeId'] = pfjson[i].nodeId   
+                
+              await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
+              throw new UnauthorizedException(errorobj)
+             
+          }         
         }
       }
-    }
-    return 'Success'
+      return 'Success'
+   
   }
 
   /* Executes the process flow based on a given valid key and role check
@@ -571,46 +666,50 @@ export class PeService {
   async getProcess(sfkey,key,upId,token) {  //GSS-DEV:WPS:IPP:PF:payment:v1:
 
     this.logger.log("Torus Process Engine Started....") 
-    
-    const decoded =  this.jwtService.decode(token,{ json: true })     
-    var psjson:any = await this.comnService.getSecurityJson(sfkey,decoded);    
-    if(typeof psjson !== 'object') {
-      return psjson
-    }
-    var sjson = await this.commonService.getPSJson(key,decoded,psjson)   
-    
-    if(typeof sjson !== 'object') {
-      return sjson
-    }
-    var incomingarr = sjson['PFaction']
-   
-    var flag = sjson['PFflag']
-    var permit
+    try {           
+      const decoded =  this.jwtService.decode(token,{ json: true })     
+      var psjson:any = await this.comnService.getSecurityJson(sfkey,decoded);    
+      if(typeof psjson !== 'object') {
+        return psjson
+      }
+      var sjson = await this.commonService.getPSJson(key,decoded,psjson)       
+            
+      if(typeof sjson !== 'object') {
+        return sjson
+      }
+      var incomingarr = sjson['PFaction']   
+      var flag = sjson['PFflag']
+      var permit
 
-    if(flag == 'E') {
-      permit = incomingarr.includes('Execute') || incomingarr.includes('*')
-      if(permit){
-        return {status:400,err:"Permission Denied to Execute "}  
-      }   
-     }
-    else if(flag == 'A') {
-      permit = incomingarr.includes('Execute') || incomingarr.includes('*')
-    
-      if(!permit)
-        return {status:400,err:"Permission Denied to Execute"}
-      else {
-      var formjson = await this.returnformdata(key, upId)
-      await this.pfPreProcessor(key, upId);
-        if (formjson == 'Success') {         
-          var pfresponse = await this.pfProcessor(key, upId, sjson['Node']);
-          await this.pfPostProcessor(key, upId);        
-          return pfresponse
-        }
-        else {      
-         return { status: 200, url: formjson };
-        }
-      }      
-    }  
+      if(flag == 'E') {
+        permit = incomingarr.includes('Execute') || incomingarr.includes('*')
+        if(permit){
+          return {status:400,err:"Permission Denied to Execute "}  
+        }   
+      }
+      else if(flag == 'A') {
+        permit = incomingarr.includes('Execute') || incomingarr.includes('*')
+      
+        if(!permit)
+          return {status:400,err:"Permission Denied to Execute"}
+        else {
+        var formjson = await this.returnformdata(key, upId, sjson['Node'])
+          await this.pfPreProcessor(key, upId);
+          if (formjson == 'Success') {         
+            var pfresponse = await this.pfProcessor(key, upId, sjson['Node']);
+
+            await this.pfPostProcessor(key, upId);        
+            return await this.comnService.responseData(201,key+upId)
+          }
+          else {      
+          return { status: 200, url: formjson };
+          }
+        }      
+      }  
+    }catch (error) {
+      //console.log("GET PROCESS ERROR",error);     
+      throw error
+    }
   }
 
   // -----------------------------pfPreProcessor--------------------------------------
@@ -641,13 +740,12 @@ export class PeService {
               await this.redisService.setJsonData(key + upId + ':IPC:' + pfjson[i].ipcFlag + ':' + pfjson[i].nodeName + '.PST', JSON.stringify(placeholder))
             }
           }
-
         }
       }
       this.logger.log("pf Preprocessor completed")
       return 'Success'
     } catch (error) {
-      var errorobj = await this.commonService.errorobj(error)
+      var errorobj = await this.comnService.errorobj('TE',error,error.status)
       await this.redisService.setJsonData(key + upId + ':ERR:' + pfjson[i].nodeName, JSON.stringify(errorobj))
       throw errorobj
     }
@@ -678,13 +776,9 @@ export class PeService {
           obj['nodetype'] = pfjson[i].nodeType;
           arr.push(obj);
           await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
-          var deci = {};
-          deci['nodeName'] = pfjson[i].nodeName;
-          deci['nodeId'] = pfjson[i].nodeId;
-          deci['nodeType'] = pfjson[i].nodeType;
 
-          //logging nodename in stream
-          await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));
+          // //logging nodename in stream        
+          await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType)
           nodeid = pfjson[i].routeArray[0].nodeId;
         }
 
@@ -701,60 +795,32 @@ export class PeService {
               obj['nodename'] = pfjson[i].nodeName;
               obj['nodetype'] = pfjson[i].nodeType;
               arr.push(obj);
-              await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
-              var fdataReq = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro.request'));
+              await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))             
               var fdataRes = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro.response'));
 
               for (var y = 0; y < pfjson.length; y++) {
                 if (pfjson[y].nodeType == "apinode" || pfjson[y].nodeType == "decisionnode")
                   await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(fdataRes), pfjson[y].nodeId + '.data.pro.request')
-              }
-              var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro');
-              await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson[i].nodeName + '.PRO', setData)
-              var deci = {};
-              deci['nodeName'] = pfjson[i].nodeName;
-              deci['nodeId'] = pfjson[i].nodeId;
-              deci['nodeType'] = pfjson[i].nodeType;
-              deci['request'] = fdataReq
-              deci['response'] = fdataRes
-
-              await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));
+              }            
+            
+              //logging execution in PE stream
+              await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,'NPC','PRO')
              
               nodeid = pfjson[i].routeArray[0].nodeId;
               this.logger.log("Humantask node completed...")
-            } catch (err) {
-              var errorobj = await this.commonService.errorobj(err)  
-              errorobj['nodeName'] = pfjson[i].nodeName
-              errorobj['nodeId'] = pfjson[i].nodeId   
-              arr.pop()
-              errorobj['previousArray'] = arr
-              await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-              await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson[i].nodeName + '.PRO', JSON.stringify(errorobj), 'exception')
-              errorobj['key']=key
-              errorobj['upId']=upId
-              throw new BadRequestException(errorobj)
+            } catch (error) {            
+              //logging Technical Exception in TPEExceptionlogs
+              var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson[i].nodeName,pfjson[i].nodeId,arr,key,upId,'NPC','PRO')
+              throw new BadRequestException(exception)
             }
           }else{
-              var errorobj = await this.commonService.errorobj('Permission Restricted to Execute the '+pfjson[i].nodeName)  
-              errorobj['errorCategory'] = 'Security'
-              errorobj['nodeName'] = pfjson[i].nodeName
-              errorobj['nodeId'] = pfjson[i].nodeId   
-                
-            await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-            throw new UnauthorizedException('Permission Restricted to Execute the '+pfjson[i].nodeName) 
-         
+            //logging Security Exception in TPEExceptionlogs
+            var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+            throw new UnauthorizedException(secException)
           }
         }
 
         // Webhook Node
-
-        /*Listen the event in order stream in redis and eventtype is ordercreated
-        The event is started get the stream data 
-        set the webhooknode response and created the paymentstream data
-        Listen the event in Dispatch stream in redis
-        The event is started get the stream data 
-        set the webhooknode response */
-
         if (nodeid == pfjson[i].nodeId && pfjson[i].nodeType == 'webhooknode' && (pfjson[i].nodeType != 'startnode' || pfjson[i].nodeType != 'endnode')) {
           var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,pfjson[i].nodeName)
          
@@ -773,41 +839,37 @@ export class PeService {
                var eventstream = fdataRes.eventStream
                var eventname = fdataReq.event
                if(eventname == 'OrderCreated'){
-                  var params ={
+                var params ={
                     streamName:eventstream,
                     field:'orders',
                     data:fdataReq
-                  }
-                 const response = await axios.post(url, params)
-                  this.logger.log(response.data)
+                }
+                const response = await axios.post(url, params)
+                this.logger.log(response.data)
                   // payment process
                 var grpinfo = await this.redisService.getInfoGrp(eventstream)               
-                  if(grpinfo.length == 0){                                                      
-                    await this.redisService.createConsumerGroup(eventstream,'OrderGroup')                                       
-                  } else if(!grpinfo[0].includes('OrderGroup')){                                   
-                    await this.redisService.createConsumerGroup(eventstream,'OrderGroup')                   
-                  }
-               var orderStream = await this.redisService.readConsumerGroup(eventstream,'OrderGroup','OrderConsumer')
+                if(grpinfo.length == 0){                                                      
+                  await this.redisService.createConsumerGroup(eventstream,'OrderGroup')                                       
+                } else if(!grpinfo[0].includes('OrderGroup')){                                   
+                  await this.redisService.createConsumerGroup(eventstream,'OrderGroup')                   
+                }
+                var orderStream = await this.redisService.readConsumerGroup(eventstream,'OrderGroup','OrderConsumer')
                   var paymentData
                   for(var o=0;o<orderStream.length;o++){                    
                     paymentData = orderStream[o].data[1]
                   }
-                var rep = await this.redisService.setJsonData(key + 'nodeProperty', paymentData, pfjson[i].nodeId + '.data.pro.response');
-                this.logger.log(rep)
-                await this.redisService.setStreamData('EStorePaymentStream','Payment',paymentData)
+                  var rep = await this.redisService.setJsonData(key + 'nodeProperty', paymentData, pfjson[i].nodeId + '.data.pro.response');
+                  this.logger.log(rep)
+                  await this.redisService.setStreamData('EStorePaymentStream','Payment',paymentData)
                   var req = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro.request'));
                   var nextnodeid = pfjson[i].routeArray[0].nodeId;
                   this.logger.log(nextnodeid)
                   req.eventType = 'PaymentMade'
-                 var result = await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(req), nextnodeid + '.data.pro.request')
-                var deci = {};
-               deci['nodeName'] = pfjson[i].nodeName;
-               deci['nodeId'] = pfjson[i].nodeId;
-               deci['nodeType'] = pfjson[i].nodeType;
-               deci['request'] = fdataReq
-               deci['response'] = fdataRes
-               await this.redisService.setStreamData('TPEprocesslogs', key + upId, JSON.stringify(deci));
-                }
+                  await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(req), nextnodeid + '.data.pro.request')
+                 
+                  //logging execution in PE stream
+                  await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,fdataReq,fdataRes)
+               }
                 else if(eventname == 'PaymentMade'){
                   var params ={
                     streamName:eventstream,
@@ -816,11 +878,11 @@ export class PeService {
                   }
                   const response = await axios.post(url, params)
                   this.logger.log(response.data)
-                 var grpinfo = await this.redisService.getInfoGrp(eventstream)               
+                  var grpinfo = await this.redisService.getInfoGrp(eventstream)               
                   if(grpinfo.length == 0){                                                      
                     await this.redisService.createConsumerGroup(eventstream,'DispatchGroup')                                    
                   } else if(!grpinfo[0].includes('DispatchGroup')){                                   
-                   await this.redisService.createConsumerGroup(eventstream,'DispatchGroup')                  
+                    await this.redisService.createConsumerGroup(eventstream,'DispatchGroup')                  
                   }
                  var dispatchStream = await this.redisService.readConsumerGroup(eventstream,'DispatchGroup','DispatchConsumer')
                  var dispatchData
@@ -831,41 +893,26 @@ export class PeService {
                  this.logger.log(nextnode)
                  var respon = await this.redisService.setJsonData(key + 'nodeProperty', dispatchData, pfjson[i].nodeId + '.data.pro.response');
                  this.logger.log(respon)
-                var deci = {};
-               deci['nodeName'] = pfjson[i].nodeName;
-               deci['nodeId'] = pfjson[i].nodeId;
-               deci['nodeType'] = pfjson[i].nodeType;
-               deci['request'] = fdataReq
-               deci['response'] = fdataRes
-               await this.redisService.setStreamData('TPEprocesslogs', key + upId, JSON.stringify(deci));
+
+                 //logging execution in PE stream
+                 await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,fdataReq,fdataRes)
                }
                var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro');
                await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson[i].nodeName + '.PRO', setData)
-               this.logger.log(fdataReq)
-               this.logger.log(fdataRes)
+               
                nodeid = pfjson[i].routeArray[0].nodeId;
                this.logger.log("webhook node completed...")
-             } catch (err) {
-               var errorobj = await this.commonService.errorobj(err)  
-               errorobj['nodeName'] = pfjson[i].nodeName
-               errorobj['nodeId'] = pfjson[i].nodeId       
-               errorobj['previousArray'] = arr.pop()
-               await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-               await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson[i].nodeName + '.PRO', JSON.stringify(errorobj), 'exception')
-               errorobj['key']=key
-               errorobj['upId']=upId
-               throw new BadRequestException(errorobj)
+             } catch (error) {
+              //logging Technical Exception in TPEExceptionlogs
+              var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson[i].nodeName,pfjson[i].nodeId,arr,key,upId,'NPC','PRO')
+              throw new BadRequestException(exception)
              }
            }else{
-               var errorobj = await this.commonService.errorobj('Permission Restricted to Execute the '+pfjson[i].nodeName)  
-               errorobj['errorCategory'] = 'Security'
-               errorobj['nodeName'] = pfjson[i].nodeName
-               errorobj['nodeId'] = pfjson[i].nodeId   
-                 
-             await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-             throw new UnauthorizedException('Permission Restricted to Execute the '+pfjson[i].nodeName) 
-           }
-         }
+            //logging Security Exception in TPEExceptionlogs 
+            var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+            throw new UnauthorizedException(secException)
+          }
+        }
 
         // Decision Node
         if (nodeid == pfjson[i].nodeId && pfjson[i].nodeType == 'decisionnode' && (pfjson[i].nodeType != 'startnode' || pfjson[i].nodeType != 'endnode')) {
@@ -902,38 +949,32 @@ export class PeService {
                 }
               }
               var m = 0;
+            
               var mapper = JSON.parse(currNode).mapper
-              if (mapper) {
-                if (mapper.pre.mapData) {
-                  let preRequest = JSON.parse(currNode).mapper.pre.request
-                  let preResponse = JSON.parse(currNode).mapper.pre.response
-                  let preMapData = JSON.parse(currNode).mapper.pre.mapData
-                  let mapperResult = await this.commonService.mapper(preRequest, preResponse, preMapData)
-                  m = 1;
-                  var mapperResponse = { "MapperResult": mapperResult };
-                }
-                if (mapper.pro.mapData) {
-                  let proRequest = JSON.parse(currNode).mapper.pro.request
-                  let proResponse = JSON.parse(currNode).mapper.pro.response
-                  let proMapData = JSON.parse(currNode).mapper.pro.mapData
-                  let mapperResult = await this.commonService.mapper(proRequest, proResponse, proMapData)
-                  m = 1;
-                  var mapperResponse = { "MapperResult": mapperResult };
-                }
-                if (mapper.pst.mapData) {
-                  let pstRequest = JSON.parse(currNode).mapper.pst.request
-                  let pstResponse = JSON.parse(currNode).mapper.pst.response
-                  let pstMapData = JSON.parse(currNode).mapper.pst.mapData
-                  let mapperResult = await this.commonService.mapper(pstRequest, pstResponse, pstMapData)
-                  m = 1;
-                  var mapperResponse = { "MapperResult": mapperResult };
+              if (mapper) {    
+                var mpr = mapper.ph[0].mapData 
+                console.log(mpr)
+                if(Object.keys(mapper.ph[0].mapData).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pre
+                  var mapperResult = await this.commonService.getMapper(mapperconfig) 
+                  m = 1;                
+                }         
+                if(Object.keys(mapper.pro.mapData ).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pro
+                  var mapperResult = await this.commonService.getMapper(mapperconfig) 
+                  m = 1;                
+                }      
+                if(Object.keys( mapper.pst.mapData).length > 0){
+                  var mapperconfig = JSON.parse(currNode).mapper.pst
+                  var mapperResult = await this.commonService.getMapper(mapperconfig) 
+                  m = 1;                 
                 }
               }
 
               if (c == 1)
                 cmresult = Object.assign(cusCodeResponse)
               if (m == 1)
-                cmresult = Object.assign(cmresult, mapperResponse)
+                cmresult = Object.assign(cmresult, mapperResult)
 
               for (var k = 0; k < pfjson[i].routeArray.length; k++) {
 
@@ -953,38 +994,23 @@ export class PeService {
                   resData = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson[i].nodeId + '.data.pro.response'));
 
                   nodeid = pfjson[i].routeArray[k].nodeId;
-                  var deci = {};
-                  deci['nodeName'] = pfjson[i].nodeName;
-                  deci['nodeId'] = pfjson[i].nodeId;
-                  deci['nodeType'] = pfjson[i].nodeType;
-                  deci['request'] = decirequest
-                  deci['response'] = resData
 
-                  await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));                 
+                  //logging Execution in PE stream
+                  await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType,decirequest,resData)                                
                   this.logger.log("decision node execution completed..")
                   break
                 }
               }
 
             } catch (error) {
-              var errorobj = await this.commonService.errorobj(error)
-              errorobj['nodeName'] = pfjson[i].nodeName
-              errorobj['nodeId'] = pfjson[i].nodeId 
-              arr.pop()
-              errorobj['previousArray'] = arr
-              await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-              await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson[i].nodeName + '.PRO', JSON.stringify(errorobj), 'exception')
-              errorobj['key']=key
-              errorobj['upId']=upId
-              throw new BadRequestException(errorobj)
-              }
+              //logging Technical Exception in TPEExceptionlogs
+              var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson[i].nodeName,pfjson[i].nodeId,arr,key,upId,'NPC','PRO')
+              throw new BadRequestException(exception)
+            }
           }else{
-            var errorobj = await this.commonService.errorobj('Permission Restricted to Execute the '+pfjson[i].nodeName)  
-            errorobj['errorCategory'] = 'Security'
-            errorobj['nodeName'] = pfjson[i].nodeName
-            errorobj['nodeId'] = pfjson[i].nodeId                 
-            await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-            throw new UnauthorizedException('Permission Restricted to Execute the '+pfjson[i].nodeName) 
+            //logging Security Exception in TPEExceptionlogs
+            var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+            throw new UnauthorizedException(secException)
           }
         }
 
@@ -1005,30 +1031,24 @@ export class PeService {
               await this.nodePostProcessor(key, pfjson[i], upId)
 
               nodeid = pfjson[i].routeArray[0].nodeId;
-              this.logger.log("Api Node execution completed")
-         
+              this.logger.log("Api Node execution completed")         
            }else{
-            var errorobj = await this.commonService.errorobj('Permission Restricted to Execute the '+pfjson[i].nodeName)  
-            errorobj['errorCategory'] = 'Security'
-            errorobj['nodeName'] = pfjson[i].nodeName
-            errorobj['nodeId'] = pfjson[i].nodeId  
-            await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))           
-            throw new UnauthorizedException('Permission Restricted to Execute the '+pfjson[i].nodeName) 
-           }
+            //logging Security Exception in TPEExceptionlogs
+            var secException = await this.commonService.getsecurityExceptionlogs(pfjson[i].nodeName,pfjson[i].nodeId,key,upId)
+            throw new UnauthorizedException(secException) 
+          }
         }
 
+        // End node
         if (pfjson[i].nodeType == 'endnode') {
           var obj = {};
           obj['nodeid'] = pfjson[i].nodeId;
           obj['nodename'] = pfjson[i].nodeName;
           obj['nodetype'] = pfjson[i].nodeType;
           arr.push(obj);
-          var deci = {};
-          deci['nodeName'] = pfjson[i].nodeName;
-          deci['nodeId'] = pfjson[i].nodeId;
-          deci['nodeType'] = pfjson[i].nodeType;
-          //logging End nodename in stream
-          await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));
+         
+          // //logging End nodename in stream
+          await this.commonService.getPElogs(key, upId, pfjson[i].nodeName,pfjson[i].nodeId,pfjson[i].nodeType)
           break;
         }
       }     
@@ -1062,7 +1082,7 @@ export class PeService {
       }
 
     } catch (error) {
-      var errorobj = await this.commonService.errorobj(error)
+      var errorobj = await this.comnService.errorobj('TE',error,error.status)
       await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
       await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson.nodeName + '.PRE', JSON.stringify(errorobj), 'exception')
     }
@@ -1085,7 +1105,7 @@ export class PeService {
           var codedata = custconf.request.code
           var coderesult = await this.commonService.customCodeProcess(key, codedata, arr);
           c = 1;
-          var cusCodeResponse = { "CustomCodeResult": coderesult }
+          var cusCodeResponse = { "CustomCodeResult": coderesult }          
         }
       }
       var z = 0;
@@ -1096,34 +1116,27 @@ export class PeService {
         z = 1;
         var zenResponse = { "ZenResult": zenresult }
       }
-      var m = 0;
-      var mapper = JSON.parse(currNode).mapper
-      if (mapper) {
-        if (mapper.pre.mapData) {
-          let preRequest = JSON.parse(currNode).mapper.pre.request
-          let preResponse = JSON.parse(currNode).mapper.pre.response
-          let preMapData = JSON.parse(currNode).mapper.pre.mapData
-          let mapperResult = await this.commonService.mapper(preRequest, preResponse, preMapData)
-          m = 1;
-          var mapperResponse = { "MapperResult": mapperResult };
-        }
-        if (mapper.pro.mapData) {
-          let proRequest = JSON.parse(currNode).mapper.pro.request
-          let proResponse = JSON.parse(currNode).mapper.pro.response
-          let proMapData = JSON.parse(currNode).mapper.pro.mapData
-          let mapperResult = await this.commonService.mapper(proRequest, proResponse, proMapData)
-          m = 1;
-          var mapperResponse = { "MapperResult": mapperResult };
-        }
-        if (mapper.pst.mapData) {
-          let pstRequest = JSON.parse(currNode).mapper.pst.request
-          let pstResponse = JSON.parse(currNode).mapper.pst.response
-          let pstMapData = JSON.parse(currNode).mapper.pst.mapData
-          let mapperResult = await this.commonService.mapper(pstRequest, pstResponse, pstMapData)
-          m = 1;
-          var mapperResponse = { "MapperResult": mapperResult };
+      var mpre,mpro,mpst = 0;
+      var mapper = JSON.parse(currNode).mapper   
+      if (mapper) {                    
+        if(Object.keys(mapper.pre.mapData).length > 0){
+          var mapperconfig = JSON.parse(currNode).mapper.pre
+          var premapperResult = await this.commonService.getMapper(mapperconfig) 
+          mpre = 1;        
+         
+        }         
+        if(Object.keys(mapper.pro.mapData ).length > 0){
+          var mapperconfig = JSON.parse(currNode).mapper.pro
+          var promapperResult = await this.commonService.getMapper(mapperconfig) 
+          mpro = 1;         
+        }      
+        if(Object.keys( mapper.pst.mapData).length > 0){
+          var mapperconfig = JSON.parse(currNode).mapper.pst
+          var pstmapperResult = await this.commonService.getMapper(mapperconfig) 
+          mpst = 1;        
         }
       }
+     
       var inputparams = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson.nodeId + '.data.pro.request'))
       var url = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson.nodeId + '.execution.pro.url'))
      
@@ -1137,16 +1150,19 @@ export class PeService {
         cmresult = Object.assign(zenResponse)
       if (c == 1)
         cmresult = Object.assign(cmresult, cusCodeResponse)
-      if (m == 1)
-        cmresult = Object.assign(cmresult, mapperResponse)
+      if (mpre == 1)
+        cmresult = Object.assign(cmresult, premapperResult)
+      if (mpro == 1)
+        cmresult = Object.assign(cmresult, promapperResult)
+      if (mpst == 1)
+        cmresult = Object.assign(cmresult, pstmapperResult)
 
       apiresult = Object.assign(apiresult, data)
       if (Object.keys(cmresult).length > 0)
         apiresult = Object.assign(apiresult, cmresult)
-
-      if (data != true) {
+      
         await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify(apiresult), pfjson.nodeId + '.data.pro.response')
-      }
+     
 
       var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson.nodeId + '.data.pro');
       await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson.nodeName + '.PRO', setData)
@@ -1163,25 +1179,12 @@ export class PeService {
 
       var setData = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson.nodeId + '.data.pro.response'))
 
-      var deci = {};
-      deci['nodeName'] = pfjson.nodeName;
-      deci['nodeId'] = pfjson.nodeId;
-      deci['nodeType'] = pfjson.nodeType;
-      deci['request'] = req
-      deci['response'] = apiresult
-
-      await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));
-    } catch (error) {   
-      var errorobj = await this.commonService.errorobj(error)
-      errorobj['nodeName'] = pfjson.nodeName
-      errorobj['nodeId'] = pfjson.nodeId 
-      arr.pop()
-      errorobj['previousArray'] = arr
-      await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
-      await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson.nodeName + '.PRO', JSON.stringify(errorobj), 'exception')
-      errorobj['key']=key
-      errorobj['upId']=upId
-      throw new BadRequestException(errorobj)
+      //logging execution in PE stream
+      await this.commonService.getPElogs(key, upId, pfjson.nodeName,pfjson.nodeId,pfjson.nodeType,req,apiresult)
+    } catch (error) { 
+      //logging Technical Exception in TPEExceptionlogs
+      var exception = await this.commonService.getExceptionlogs(error,error.status,pfjson.nodeName,pfjson.nodeId,arr,key,upId,'NPC','PRO')      
+      throw new BadRequestException(exception);
     }
   }
 
@@ -1208,12 +1211,11 @@ export class PeService {
       }
 
     } catch (error) {
-      var errorobj = await this.commonService.errorobj(error)
+      var errorobj = await this.comnService.errorobj('TE',error,error.status)
       await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
       await this.redisService.setJsonData(key + upId + ':NPC:' + pfjson.nodeName + '.PRO', JSON.stringify(errorobj), 'exception')
     }
   }
-
   // -----------------------------pfPostProcessor--------------------------------------
 
   /* Perform garbage clean logic and calling external API
@@ -1247,8 +1249,10 @@ export class PeService {
   async postapicall(url, params, key, nodeName, upId) {   
     try {
       this.logger.log("POST API call Execution")
-      const postres = await axios.post(url, params)
-      return postres.data
+    //  const postres = await axios.post(url, params)
+      const postres = await this.comnService.postCall(url,params)      
+      // response.status,
+      return postres
     } catch (error) {   
       await this.redisService.setJsonData(key + upId + ':NPC:' + nodeName + '.PRO', JSON.stringify(error), 'exception')
       throw error

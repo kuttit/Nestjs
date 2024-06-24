@@ -1,0 +1,214 @@
+import React, { useEffect, useState } from 'react'
+import Applist from './appList'
+import { FaRegFolderOpen } from 'react-icons/fa'
+import { useTheme } from 'next-themes'
+import { toast } from 'react-toastify'
+import axios from 'axios'
+
+interface Response {
+  data: any[]
+  status: number
+}
+
+interface selectedGrps {
+  orgGrp: string | any
+  psGrp: string | any
+  roleGrp: string | any
+}
+
+const AppSelector = ({ tenant }: any) => {
+  const [applicationGroup, setApplicationGroup] = useState<any[]>([])
+  const { theme } = useTheme()
+  const [selectedAppGroup, setSelectedAppGroup] = useState('')
+  const [orgGroup, setOrgGroup] = useState([])
+  const [psGroup, setPsGroup] = useState([])
+  const [roleGroup, setRoleGroup] = useState([])
+  const [selectedGrps, setSelectedGrps] = useState<selectedGrps>({
+    orgGrp: {},
+    psGrp: {},
+    roleGrp: {}
+  })
+
+  //API calls
+  const getAllApplicationGroup = async () => {
+    try {
+      const response: Response = await axios.get(
+        `http://localhost:3002/tp/getappgrouplist?tenant=${tenant}`
+      )
+      if (response.status === 200) {
+        setApplicationGroup(response.data)
+        if (response.data.length > 0) {
+          if (!selectedAppGroup) {
+            setSelectedAppGroup(response.data[0])
+          }
+        }
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
+  const handleAppGroupSelection = (appGroup: string) => {
+    setSelectedAppGroup(appGroup)
+  }
+
+  const handleSelectOrgGrp = (orgGrp: any) => {
+    setSelectedGrps(prev => ({ ...prev, orgGrp: orgGrp }))
+  }
+
+  const handleSelectPsGrp = (psGrp: any) => {
+    setSelectedGrps(prev => ({ ...prev, psGrp: psGrp }))
+  }
+
+  const handleSelectRGrp = (roleGrp: any) => {
+    setSelectedGrps(prev => ({ ...prev, roleGrp: roleGrp }))
+  }
+
+  const fetchAllGroups = async () => {
+    try {
+      const response = await axios.get(
+        `http://localhost:3002/tp/getORPGroupData?tenant=${tenant}&group=all`
+      )
+      if (response.status == 200) {
+        const { roleGrp, orgGrp, psGrp } = response.data
+        setRoleGroup(roleGrp)
+        setOrgGroup(orgGrp)
+        setPsGroup(psGrp)
+        setSelectedGrps({
+          orgGrp: orgGrp[0],
+          psGrp: psGrp[0],
+          roleGrp: roleGrp[0]
+        })
+      } else {
+        toast.error(
+          'Please setup roles , org and service details in tenant profile info'
+        )
+      }
+    } catch (error) {
+      toast.error('Error occured')
+    }
+  }
+
+  useEffect(() => {
+    if (tenant) {
+      fetchAllGroups()
+      getAllApplicationGroup()
+    }
+  }, [])
+
+  return (
+    <div
+      className={`flex h-full w-full ${theme == 'dark' ? 'bg-[#2A2A2D] text-white' : ''}`}
+    >
+      <div
+        className={`${theme == 'dark' ? 'bg-[#373C47] text-white' : ''} flex w-[20%] flex-col gap-5 p-3`}
+      >
+        <h2 className='text-lg font-bold'>AppGroup List</h2>
+        <div className='flex h-[25%] flex-col gap-3 overflow-y-scroll scrollbar-hide'>
+          {applicationGroup.length ? (
+            applicationGroup.map((appGroup, index) => (
+              <div
+                key={index}
+                onClick={() => handleAppGroupSelection(appGroup)}
+                className={`cursor-pointer ${
+                  selectedAppGroup == appGroup ? 'rounded bg-gray-400 p-2' : ''
+                }`}
+              >
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <FaRegFolderOpen />
+                    {appGroup}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div>No Data Available</div>
+          )}
+        </div>
+
+        <h2 className='text-lg font-bold'>Organizations</h2>
+        <div className='flex h-[25%] flex-col gap-3 overflow-y-auto scrollbar-hide'>
+          {orgGroup.length ? (
+            orgGroup.map((orgGrp: any, index) => (
+              <div
+                key={index}
+                onClick={() => handleSelectOrgGrp(orgGrp)}
+                className={`cursor-pointer ${
+                  selectedGrps.orgGrp.orgGrpName == orgGrp.orgGrpName
+                    ? 'rounded bg-gray-400 p-2'
+                    : ''
+                }`}
+              >
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <FaRegFolderOpen />
+                    {orgGrp.orgGrpName}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div>No Organizations Data Available</div>
+          )}
+        </div>
+
+        <h2 className='text-lg font-bold'>Roles</h2>
+        <div className='flex h-[25%] flex-col gap-3 overflow-y-auto scrollbar-hide'>
+          {roleGroup.length ? (
+            roleGroup.map((roleGrp: any) => (
+              <div
+                key={roleGrp.roleGrpCode}
+                onClick={() => handleSelectRGrp(roleGrp)}
+                className={`cursor-pointer ${
+                  selectedGrps.roleGrp.roleGrpName == roleGrp.roleGrpName
+                    ? 'rounded bg-gray-400 p-2'
+                    : ''
+                }`}
+              >
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <FaRegFolderOpen />
+                    {roleGrp.roleGrpName}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div>No Roles Data Available</div>
+          )}
+        </div>
+        <h2 className='text-lg font-bold'>Product and Service</h2>
+        <div className='flex h-[25%] flex-col gap-3 overflow-y-auto scrollbar-hide'>
+          {psGroup.length ? (
+            psGroup.map((psGrp: any) => (
+              <div
+                key={psGrp.psGrpCode}
+                onClick={() => handleSelectPsGrp(psGrp)}
+                className={`cursor-pointer ${
+                  selectedGrps.psGrp.psGrpName == psGrp.psGrpName
+                    ? 'rounded bg-gray-400 p-2'
+                    : ''
+                }`}
+              >
+                <div className='flex items-center justify-between'>
+                  <div className='flex items-center gap-2'>
+                    <FaRegFolderOpen />
+                    {psGrp.psGrpName}
+                  </div>
+                </div>
+              </div>
+            ))
+          ) : (
+            <div>No Product and Service Data Available</div>
+          )}
+        </div>
+      </div>
+      <div className='flex w-full justify-between'>
+        <Applist selectedGrps={selectedGrps} appGroup={selectedAppGroup} />
+      </div>
+    </div>
+  )
+}
+
+export default AppSelector

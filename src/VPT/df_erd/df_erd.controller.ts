@@ -81,29 +81,6 @@ export class DfErdController {
     );
   }
 
-  // @Get('applicationName')
-  // async getApplicationName(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.dfErdService.getApplicationList(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.fabrics,
-  //   );
-  // }
-
-  // @Get('flowName')
-  // async getFlowName(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.dfErdService.getFlowList(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.fabrics,
-  //     query.applicationName,
-  //   );
-  // }
-
   @Post()
   async saveJson(
     @Body() req: any,
@@ -119,13 +96,6 @@ export class DfErdController {
     );
   }
 
-  // @Get('/sync')
-  // async syncToFolder(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ) {
-  //   return this.dfErdService.syncToFolder(query.tenant);
-  // }
-
   @Delete('/deleteApplication')
   async deleteApplication(
     @Query(new ValidationPipe({ transform: true })) query: any,
@@ -138,70 +108,10 @@ export class DfErdController {
     );
   }
 
-  @Get('applicationDetails')
-  async applicationDetails() {
-    return this.dfErdService.applicationDetails();
-  }
-
-  @Get('/tenantDetails')
-  async tenantDetails() {
-    return this.dfErdService.tenantDetails();
-  }
-
-  @Get('/controlpolicy')
-  async controlpolicy(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    return this.dfErdService.controlpolicy(query.nodeType);
-  }
-
   @Get('defaultVersion')
   async getdefaultversion(
     @Query(new ValidationPipe({ transform: true })) query: any,
   ): Promise<any> {
     return await this.dfErdService.getDefaultVersion();
   }
-
-  @Get('/userRole')
-  async userRole(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    return this.dfErdService.getUserRoleDetails(query.roleId);
-  }
-
-  // @Get('/redis')
-  // async redisCheck(): Promise<any> {
-  //   return await this.cacheManager.set('torus', {
-  //     tenant: {
-  //       application1: {
-  //         pfflow: {
-  //           v1: {
-  //             data: '100',
-  //           },
-  //           v2: {
-  //             data: '200',
-  //           },
-  //         },
-  //       },
-  //       application2: {
-  //         pfflow: {
-  //           v1: {
-  //             data: '100',
-  //           },
-  //           v2: {
-  //             data: '200',
-  //           },
-  //         },
-  //       },
-  //     },
-  //   });
-  //   // await this.cacheManager.get('sname')
-  // }
-
-  // @Get('/getredis')
-  // async getredis(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.dfErdService.getRedis(query.tenant);
-  // }
 }

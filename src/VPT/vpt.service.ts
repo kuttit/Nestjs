@@ -2,7 +2,7 @@ import { HttpService } from '@nestjs/axios';
 import { PfdService } from './pfd/pfd.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
 import axios from 'axios';
-
+import { PfPfdService } from './pf_pfd/pf_pfd.service';
 import { RedisService } from 'src/redisService';
 import { ZenEngine } from '@gorules/zen-engine';
 
@@ -11,7 +11,8 @@ export class VptService {
   constructor(
     private readonly redisService: RedisService,
     private readonly pfdService: PfdService,
-    private readonly httpService: HttpService,
+
+    private readonly pfPfdService: PfPfdService,
   ) {}
 
   async getDomain(source): Promise<any> {
@@ -390,23 +391,7 @@ export class VptService {
       }).then((res) => {
         return res.json();
       });
-      // let datas = await this.httpService.post(
-      //   'http://192.168.2.165:2000/api/v2/execute',
-      //   {
-      //     language: 'javascript',
-      //     version: '18.15.0',
-      //     files: [
-      //       {
-      //         content: code,
-      //       },
-      //     ],
-      //   },
-      //   {
-      //     headers: {
-      //       'Content-Type': 'application/json',
-      //     },
-      //   },
-      // );
+
       let result = data;
       console.log(result);
       return {
@@ -462,42 +447,37 @@ export class VptService {
     artifact,
   ): Promise<any> {
     try {
-      const res = await this.readReddis(tenant);
-      const applications = await JSON.parse(res);
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        applications[tenant][appGroup].hasOwnProperty(application) &&
-        applications[tenant][appGroup][application].hasOwnProperty(fabrics) &&
-        applications[tenant][appGroup][application][fabrics].hasOwnProperty(
+      await this.delete(
+        tenant +
+          ':' +
+          appGroup +
+          ':' +
+          application +
+          ':' +
+          fabrics +
+          ':' +
           artifact,
-        ) &&
-        typeof applications === 'object'
-      ) {
-        delete applications[tenant][appGroup][application][fabrics][artifact];
-        await this.delete(
-          tenant +
-            ':' +
-            appGroup +
-            ':' +
-            application +
-            ':' +
-            fabrics +
-            ':' +
-            artifact,
-        );
-        await this.writeReddis(tenant, applications);
-        let artifactList = Object.keys(
-          applications[tenant][appGroup][application][fabrics],
-        );
+      );
+
+      const artifactList = await this.pfPfdService.getArtifact(
+        tenant,
+        appGroup,
+        fabrics,
+        application,
+      );
+      console.log(artifactList, 'artifactList');
+      if (artifactList && artifactList.data) {
         return {
           status: 200,
-          data: artifactList,
+          data: artifactList.data,
           message: 'Artifact Deleted Successfully',
         };
       } else {
-        return { status: 400, data: {}, message: 'Artifact Not Found' };
+        return {
+          status: 200,
+          data: [],
+          message: 'Artifact Deleted Successfully',
+        };
       }
     } catch (error) {
       throw error;
@@ -515,66 +495,38 @@ export class VptService {
     try {
       const res = await this.readReddis(tenant);
       const applications = await JSON.parse(res);
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        applications[tenant][appGroup].hasOwnProperty(application) &&
-        applications[tenant][appGroup][application].hasOwnProperty(fabrics) &&
-        applications[tenant][appGroup][application][fabrics].hasOwnProperty(
-          artifact,
-        ) &&
-        typeof applications === 'object'
-      ) {
-        let versionList = [];
-        if (
-          !Array.isArray(
-            applications[tenant][appGroup][application][fabrics][artifact],
-          )
-        ) {
-          delete applications[tenant][appGroup][application][fabrics][artifact][
-            version
-          ];
-          versionList = Object.keys(
-            applications[tenant][appGroup][application][fabrics][artifact],
-          );
-        } else {
-          applications[tenant][appGroup][application][fabrics][artifact] = [
-            ...applications[tenant][appGroup][application][fabrics][
-              artifact
-            ].filter((v) => v !== version),
-          ];
-          versionList =
-            applications[tenant][appGroup][application][fabrics][artifact];
-        }
-
-        await this.delete(
-          tenant +
-            ':' +
-            appGroup +
-            ':' +
-            application +
-            ':' +
-            fabrics +
-            ':' +
-            artifact +
-            ':' +
-            version,
-        );
-        await this.writeReddis(tenant, applications);
-
+      await this.delete(
+        tenant +
+          ':' +
+          appGroup +
+          ':' +
+          application +
+          ':' +
+          fabrics +
+          ':' +
+          artifact +
+          ':' +
+          version,
+      );
+      let versionList = await this.pfPfdService.getVersion(
+        tenant,
+        appGroup,
+        fabrics,
+        application,
+        artifact,
+      );
+      if (versionList && versionList.data) {
         return {
           status: 200,
-          data: versionList,
+          data: versionList.data,
           message: 'Version Deleted Successfully',
         };
-      } else {
+      } else
         return {
-          status: 400,
+          status: 200,
           data: [],
           message: 'Version Not Found',
         };
-      }
     } catch (error) {
       throw error;
     }

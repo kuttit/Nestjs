@@ -14,6 +14,7 @@ import { EventsModule } from './events/events.module';
 import { HttpModule } from '@nestjs/axios';
 import { ExecutionModule } from './customCodeExecution/execution.module';
 import { SFModule } from './sf/sf.module';
+import { PfPfdService } from './pf_pfd/pf_pfd.service';
 
 @Module({
   imports: [
@@ -29,6 +30,6 @@ import { SFModule } from './sf/sf.module';
     ExecutionModule,
   ],
   controllers: [VptController],
-  providers: [VptService, RedisService, PfdService],
+  providers: [VptService, RedisService, PfdService,PfPfdService],
 })
 export class VptModule {}

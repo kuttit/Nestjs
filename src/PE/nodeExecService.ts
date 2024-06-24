@@ -33,40 +33,40 @@ export class NodeExecutionService {
    * @throws {Error} - Throws an error if the ActionDenied or ActionAllowed array is empty.
    */
 
-  async nodeExecution(sfkey,keywithUPid,nodeId,nodeName,nodeType, token){ 
-    this.logger.log("Node level execution Started....")
-    try{
-      //To split UPId from key to pass param in getSecurityJson
-      var key = keywithUPid.split(':',6).join(':')      
-      const decoded =  this.jwtService.decode(token,{ json: true }) 
-    
-      var psjson:any = await this.comnService.getSecurityJson(sfkey,decoded);
-      if(typeof psjson !== 'object'){
-        return psjson
-      }
-      var sjson = await this.commonService.getPSJson(key,decoded,psjson)       
-      if(typeof sjson !== 'object'){
-        return sjson
-      }
-      var nodeDetails = sjson['Node']
-      var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,nodeName)
-        
-      if(nodeSjson == true){
-        var npcchk = await this.redisService.getJsonData(keywithUPid +':NPC:' +nodeName+'.PRO')    
-        return JSON.parse(npcchk)  
-      }else{
-        
-      }
-     
-        
+    async nodeExecution(sfkey,keywithUPid,nodeId,nodeName,nodeType, token){ 
+      this.logger.log("Node level execution Started....")
+      try{
+        //To split UPId from key to pass param in getSecurityJson
+        var key = keywithUPid.split(':',6).join(':')      
+        const decoded =  this.jwtService.decode(token,{ json: true }) 
+      
+        var psjson:any = await this.comnService.getSecurityJson(sfkey,decoded);
+        if(typeof psjson !== 'object'){
+          return psjson
+        }
+        var sjson = await this.commonService.getPSJson(key,decoded,psjson)       
+        if(typeof sjson !== 'object'){
+          return sjson
+        }
+        var nodeDetails = sjson['Node']
+        var nodeSjson = await this.commonService.getNodeSecurityJson(nodeDetails,nodeName)
+          
+        if(nodeSjson == true){
+          var npcchk = await this.redisService.getJsonData(keywithUPid +':NPC:' +nodeName+'.PRO')    
+          return JSON.parse(npcchk)  
+        }else{
+          
+        }
        
-    }catch(error){
-      var errorobj = await this.commonService.errorobj(error) 
-      errorobj['nodeName'] = nodeName, 
-      errorobj['nodeId'] =  nodeId
-      await this.redisService.setStreamData('TPEExceptionlogs', keywithUPid, JSON.stringify(errorobj))
-      await this.redisService.setJsonData(key + 'nodeProperty',JSON.stringify(errorobj),nodeId+'.data.pro.exception')
+          
+         
+      }catch(error){
+        var errorobj = await this.comnService.errorobj('TE',error,error.status) 
+        errorobj['nodeName'] = nodeName, 
+        errorobj['nodeId'] =  nodeId
+        await this.redisService.setStreamData('TPEExceptionlogs', keywithUPid, JSON.stringify(errorobj))
+        await this.redisService.setJsonData(key + 'nodeProperty',JSON.stringify(errorobj),nodeId+'.data.pro.exception')
+      }    
     }    
-  }   
 }  
 

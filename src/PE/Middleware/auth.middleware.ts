@@ -12,8 +12,8 @@ export class AuthMiddleware implements NestMiddleware {
     if(!tokenhead){
       throw new NotAcceptableException('token not found')
     }
-    var btoken = tokenhead.split(' ');      
-    var token:any = this.jwtService.decode(btoken[1],{ json: true }) ;
+    var btoken = tokenhead.split(' ')[1];      
+    var token:any = this.jwtService.decode(btoken,{ json: true }) ;
     
     var orggrp = token.orgGrp.orgGrpCode;
     var orgcode = token.orgGrp.orgCode;

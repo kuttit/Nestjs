@@ -148,130 +148,6 @@ export class SFService {
     }
   }
 
-  // async getApplicationList(tenant, appGroup, fabrics): Promise<any> {
-  //   try {
-  //     const res = await this.readReddis(tenant);
-  //     const applications = await JSON.parse(res);
-  //     console.log(applications, 'appllllll');
-  //     const response = [];
-  //     if (
-  //       applications &&
-  //       applications.hasOwnProperty(tenant) &&
-  //       applications[tenant].hasOwnProperty(appGroup) &&
-  //       applications[tenant][appGroup].hasOwnProperty(fabrics) &&
-  //       applications[tenant][appGroup][fabrics] &&
-  //       typeof applications === 'object' &&
-  //       Object.keys(applications[tenant]?.[appGroup]?.[fabrics]).length
-  //     ) {
-  //       const applicationName = Object.keys(
-  //         applications[tenant][appGroup][fabrics],
-  //       );
-
-  //       if (applicationName) {
-  //         for (let application of applicationName) {
-  //           const artifactName = Object.keys(
-  //             applications[tenant][appGroup][fabrics][application],
-  //           );
-  //           const artifactsDetails = [];
-  //           for (const artifact of artifactName) {
-  //             const version = Object.keys(
-  //               applications[tenant][appGroup][fabrics][application][artifact],
-  //             );
-
-  //             artifactsDetails.push({
-  //               artifact: artifact,
-  //               version: version,
-  //             });
-  //           }
-  //           response.push({
-  //             application: application,
-  //             artifact: artifactsDetails,
-  //           });
-  //         }
-  //       }
-  //     }
-  //     console.table(response);
-  //     return response;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  // async getFabrics(tenant, appGroup): Promise<any> {
-  //   try {
-  //     const res = await this.readReddis(tenant);
-  //     const applications = await JSON.parse(res);
-  //     console.log(applications, 'appllllll');
-  //     const response = [];
-  //     if (
-  //       applications &&
-  //       applications.hasOwnProperty(tenant) &&
-  //       applications[tenant].hasOwnProperty(appGroup) &&
-  //       typeof applications === 'object'
-  //     ) {
-  //       const fabricsList = Object.keys(applications[tenant][appGroup]);
-
-  //       if (fabricsList) {
-  //         for (let fabrics of fabricsList) {
-  //           const applicationName = Object.keys(
-  //             applications[tenant][appGroup][fabrics],
-  //           );
-  //           const applicationDetails = [];
-  //           for (const application of applicationName) {
-  //             applicationDetails.push(application);
-  //           }
-  //           response.push({
-  //             fabrics: fabrics,
-  //             applications: applicationDetails,
-  //           });
-  //         }
-  //       }
-  //     }
-
-  //     return response;
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
-
-  // async getFlowList(tenant, appGroup, fabrics, applicationName): Promise<any> {
-  //   try {
-  //     const res = await this.readReddis(tenant);
-  //     const applications = await JSON.parse(res);
-  //     if (
-  //       applications &&
-  //       applications.hasOwnProperty(tenant) &&
-  //       applications[tenant].hasOwnProperty(appGroup) &&
-  //       applications[tenant][appGroup].hasOwnProperty(fabrics) &&
-  //       applications[tenant][appGroup][fabrics] &&
-  //       applications[tenant][appGroup][fabrics].hasOwnProperty(
-  //         applicationName,
-  //       ) &&
-  //       typeof applications === 'object' &&
-  //       Object.keys(applications[tenant]?.[appGroup]?.[fabrics]).length
-  //     ) {
-  //       const artifactName = Object.keys(
-  //         applications[tenant][appGroup][fabrics][applicationName],
-  //       );
-
-  //       const artifactsDetails = [];
-  //       for (const artifact of artifactName) {
-  //         const version =
-  //           applications[tenant][appGroup][fabrics][applicationName][artifact];
-
-  //         artifactsDetails.push({
-  //           artiFactsList: artifact,
-  //           version: version,
-  //         });
-  //       }
-
-  //       return artifactsDetails;
-  //     }
-  //     throw new BadRequestException('Application Not Found');
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // }
   async getAppGroup(tenant): Promise<any> {
     try {
       const res = await this.readReddis(tenant);
@@ -370,41 +246,22 @@ export class SFService {
   }
   async getArtifact(tenant, appGroup, fabrics, applicationName): Promise<any> {
     try {
-      const res = await this.readReddis(tenant);
-      const applications = await JSON.parse(res);
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        applications[tenant][appGroup].hasOwnProperty(applicationName) &&
-        applications[tenant][appGroup][applicationName] &&
-        applications[tenant][appGroup][applicationName].hasOwnProperty(
-          fabrics,
-        ) &&
-        typeof applications === 'object' &&
-        Object.keys(applications[tenant]?.[appGroup]?.[applicationName]).length
-      ) {
-        const artifactName = Object.keys(
-          applications[tenant][appGroup][applicationName][fabrics],
-        );
+      const keys = await this.redisService.getKeys(
+        `${tenant}:${appGroup}:${applicationName}:${fabrics}`,
+      );
 
-        // const artifactsDetails = [];
-        // for (const artifact of artifactName) {
-        //   const version =
-        //     applications[tenant][appGroup][applicationName][fabrics][artifact];
-
-        //   artifactsDetails.push({
-        //     artiFactsList: artifact,
-        //     version: version,
-        //   });
-        // }
-
-        return {
-          status: 200,
-          data: artifactName,
-        };
+      let aritfact = new Set([]);
+      if (keys && keys.length > 0) {
+        for (let i = 0; i < keys.length; i++) {
+          const artifacts = keys[i].split(':');
+          if (artifacts.length == 7 && artifacts[4]) aritfact.add(artifacts[4]);
+        }
       }
-      throw new BadRequestException('Application Not Found');
+
+      return {
+        data: Array.from(aritfact),
+        status: 200,
+      };
     } catch (error) {
       throw error;
     }
@@ -418,42 +275,22 @@ export class SFService {
     artifact,
   ): Promise<any> {
     try {
-      const res = await this.readReddis(tenant);
-      const applications = await JSON.parse(res);
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        applications[tenant][appGroup].hasOwnProperty(applicationName) &&
-        applications[tenant][appGroup][applicationName] &&
-        applications[tenant][appGroup][applicationName].hasOwnProperty(
-          fabrics,
-        ) &&
-        applications[tenant][appGroup][applicationName][fabrics].hasOwnProperty(
-          artifact,
-        ) &&
-        typeof applications === 'object' &&
-        Object.keys(applications[tenant]?.[appGroup]?.[applicationName]).length
-      ) {
-        let version = [];
+      const keys = await this.redisService.getKeys(
+        `${tenant}:${appGroup}:${applicationName}:${fabrics}:${artifact}`,
+      );
 
-        if (
-          Array.isArray(
-            applications[tenant][appGroup][applicationName][fabrics][artifact],
-          )
-        ) {
-          version =
-            applications[tenant][appGroup][applicationName][fabrics][artifact];
-        } else {
-          version = Object.keys(
-            applications[tenant][appGroup][applicationName][fabrics][artifact],
-          );
+      let version = new Set([]);
+      if (keys && keys.length > 0) {
+        for (let i = 0; i < keys.length; i++) {
+          const versions = keys[i].split(':');
+          if (versions.length == 7 && versions[5]) version.add(versions[5]);
         }
-        return {
-          status: 200,
-          data: version,
-        };
       }
+
+      return {
+        data: Array.from(version).sort(),
+        status: 200,
+      };
     } catch (error) {
       throw error;
     }
@@ -475,41 +312,6 @@ export class SFService {
 
     return newObj;
   }
-
-  // async getPathsAndCreateFolders(obj, currentPath = '', interator) {
-  //   let paths = [];
-
-  //   for (const key in obj) {
-  //     if (obj.hasOwnProperty(key)) {
-  //       const newPath = `${currentPath}/${key}`;
-  //       paths.push(newPath);
-
-  //       if (typeof obj[key] === 'object' && obj[key] !== null) {
-  //         if (interator <= 6) {
-  //           if (interator === 1 && fs.existsSync(`./${newPath}`)) {
-  //             await fs.rmSync(`./${newPath}`, {
-  //               recursive: true,
-  //               force: true,
-  //             });
-  //           }
-  //           fs.mkdirSync(`./${newPath}`);
-  //           paths = paths.concat(
-  //             await this.getPathsAndCreateFolders(
-  //               obj[key],
-  //               newPath,
-  //               interator + 1,
-  //             ),
-  //           );
-  //         } else {
-  //           fs.writeFileSync(`./${newPath}.json`, JSON.stringify(obj[key]));
-  //         }
-  //       } else if (typeof obj[key] === 'string' && obj[key] !== null) {
-  //         fs.writeFileSync(`./${newPath}.txt`, obj[key]);
-  //       }
-  //     }
-  //   }
-  //   return paths;
-  // }
 
   async createRedisFiles(obj, currentPath = '', interator) {
     let path = [];
@@ -535,25 +337,6 @@ export class SFService {
       }
     }
   }
-
-  // async syncToFolder(tenant: any): Promise<any> {
-  //   let ten = save_options;
-
-  //   let arr = [];
-  //   ten.map((t) => {
-  //     arr.push(t.tenant);
-  //   });
-
-  //   const tenants = [...arr];
-  //   console.log(tenants, 'tenants');
-  //   let tenantObjects = await this.getRedisAll(tenants);
-  //   console.log('tenantObjects-->', tenantObjects);
-  //   if (tenantObjects && Object.keys(tenantObjects).length) {
-  //     let keys: any = await this.getPathsAndCreateFolders(tenantObjects, '', 1);
-  //     console.log(keys, 'klklklkl');
-  //     return tenantObjects;
-  //   }
-  // }
 
   async saveaWorkFlow(
     req: any,
@@ -601,391 +384,65 @@ export class SFService {
         summary: summary,
       };
 
-      updateResult = {
-        nodes: flowNodes,
-        nodeProperty: flowNodesProperty,
-        nodeEdges: flowNodeEdges,
-        summary: summary,
-      };
-
-      console.log(updateResult, 'updateResult');
-      console.log(result, 'result');
-
-      if (type == 'create') {
-        const res = await this.readReddis(tenant);
-        let mainJson: object = await JSON.parse(res);
-        let version = 'v1';
-        if (mainJson) {
-          if (!mainJson.hasOwnProperty(tenant)) {
-            mainJson = { ...mainJson, [tenant]: {} };
-          }
-          if (!mainJson[tenant].hasOwnProperty(appGroup)) {
-            mainJson[tenant] = { ...mainJson[tenant], [appGroup]: {} };
-          }
-          if (!mainJson[tenant][appGroup].hasOwnProperty(req.applicationName)) {
-            mainJson[tenant][appGroup] = {
-              ...mainJson[tenant][appGroup],
-              [req.applicationName]: {},
-            };
-          }
-
-          if (
-            !mainJson[tenant][appGroup][req.applicationName].hasOwnProperty(
-              fabrics,
-            )
-          ) {
-            mainJson[tenant][appGroup][req.applicationName] = {
-              ...mainJson[tenant][appGroup][req.applicationName],
-              [fabrics]: {},
-            };
-          }
-          if (
-            !mainJson[tenant][appGroup][req.applicationName][
-              fabrics
-            ].hasOwnProperty(req.artifact)
-          ) {
-            mainJson[tenant][appGroup][req.applicationName][fabrics] = {
-              ...mainJson[tenant][appGroup][req.applicationName][fabrics],
-              [req.artifact]: {},
-            };
-          }
-
-          if (
-            mainJson[tenant][appGroup][req.applicationName][fabrics][
-              req.artifact
-            ].hasOwnProperty(version)
-          ) {
-            version = `v${
-              Object.keys(
-                mainJson[tenant][appGroup][req.applicationName][fabrics][
-                  req.artifact
-                ],
-              ).length + 1
-            }`;
-
-            mainJson[tenant][appGroup][req.applicationName][fabrics][
-              req.artifact
-            ] = {
-              ...mainJson[tenant][appGroup][req.applicationName][fabrics][
-                req.artifact
-              ],
-              [version]: {},
-            };
-          } else {
-            version = 'v1';
-            mainJson[tenant][appGroup][req.applicationName][fabrics][
-              req.artifact
-            ] = {
-              [version]: {},
-            };
-          }
-        } else {
-          mainJson = {
-            [tenant]: {
-              [appGroup]: {
-                [req.applicationName]: {
-                  [fabrics]: {
-                    [req.artifact]: {
-                      [version]: {},
-                    },
-                  },
-                },
-              },
-            },
-          };
-        }
-        await this.writeReddis(tenant, mainJson);
-
-        Object.keys(result).map(async (key) => {
-          await this.writeReddis(
-            tenant +
-              ':' +
-              appGroup +
-              ':' +
-              req.applicationName +
-              ':' +
-              fabrics +
-              ':' +
-              req.artifact +
-              ':' +
-              version +
-              ':' +
-              key,
-            result[key],
-          );
-        });
-        const versions = Object.keys(
-          mainJson[tenant][appGroup][req.applicationName][fabrics][
-            req.artifact
-          ],
+      let newVersion = 'v1';
+      if (type === 'create') {
+        let versionList = await this.getVersion(
+          tenant,
+          appGroup,
+          fabrics,
+          req.applicationName,
+          req.artifact,
         );
-
-        return {
-          msg: 'New Application Created',
-          data: versions,
-          status: 200,
-        };
+        if (
+          versionList &&
+          versionList.status === 200 &&
+          versionList.data &&
+          versionList.data.length > 0
+        ) {
+          newVersion = `v${versionList.data.length + 1}`;
+        }
+      } else {
+        newVersion = version;
       }
 
-      // if (type === 'create') {
-      //   const res = await this.readReddis(tenant);
-      //   const applications: object = await JSON.parse(res);
-      //   if (
-      //     applications &&
-      //     applications.hasOwnProperty(tenant) &&
-      //     applications[tenant].hasOwnProperty(appGroup) &&
-      //     applications[tenant][appGroup].hasOwnProperty(req.applicationName) &&
-      //     typeof applications === 'object' &&
-      //     Object.keys(applications[tenant][appGroup][req.applicationName])
-      //       .length
-      //   ) {
-      //     const application = { ...applications };
-
-      //     if (
-      //       application[tenant][appGroup][req.applicationName].hasOwnProperty(
-      //         fabrics,
-      //       )
-      //     ) {
-      //       let version: string;
-      //       if (
-      //         application[tenant][appGroup][req.applicationName][
-      //           fabrics
-      //         ].hasOwnProperty(req.artifact)
-      //       ) {
-      //         version = `v${
-      //           Object.keys(
-      //             applications[tenant][appGroup][req.applicationName][fabrics][
-      //               req.artifact
-      //             ],
-      //           ).length + 1
-      //         }`;
-      //         applications[tenant][appGroup][req.applicationName][fabrics][
-      //           req.artifact
-      //         ] = [
-      //           ...applications[tenant][appGroup][req.applicationName][fabrics][
-      //             req.artifact
-      //           ],
-      //           version,
-      //         ];
-
-      //       } else {
-      //         version = `v1`;
-      //         applications[tenant][appGroup][req.applicationName][fabrics] = {
-      //           ...applications[tenant][appGroup][req.applicationName][fabrics],
-      //           [req.artifact]: {version},
-      //         };
-
-      //       }
-
-      //       await this.writeReddis(tenant, application);
-
-      //       Object.keys(result).map(async (key) => {
-      //         await this.writeReddis(
-      //           tenant +
-      //             ':' +
-      //             appGroup +
-      //             ':' +
-      //             req.applicationName +
-      //             ':' +
-      //             fabrics +
-      //             ':' +
-      //             req.artifact +
-      //             ':' +
-      //             version +
-      //             ':' +
-      //             key,
-      //           result[key],
-      //         );
-      //       });
-
-      //       const versions =
-      //         application[tenant][appGroup][req.applicationName][fabrics][
-      //           req.artifact
-      //         ];
-
-      //       const appw = structuredClone(application);
-
-      //       // await this.createRedisFiles(appw, '', 1);
-      //       return {
-      //         msg: 'New Application Created',
-      //         data: versions,
-      //         status: 200,
-      //       };
-      //     }
-
-      //     else {
-      //       const version = `v1`;
-      //       applications[tenant][appGroup][req.applicationName][fabrics] = {
-      //         ...applications[tenant][appGroup][req.applicationName][fabrics],
-      //         [req.artifact]: [version],
-      //       };
-      //       console.log(
-      //         'application exists-->',
-      //         JSON.stringify(application),
-      //         tenant,
-      //       );
-      //       await this.writeReddis(tenant, application);
-      //       Object.keys(result).map(async (key) => {
-      //         await this.writeReddis(
-      //           tenant +
-      //             ':' +
-      //             appGroup +
-      //             ':' +
-      //             req.applicationName +
-      //             ':' +
-      //             fabrics +
-      //             ':' +
-      //             req.artifact +
-      //             ':' +
-      //             version +
-      //             ':' +
-      //             key,
-      //           result[key],
-      //         );
-      //       });
-
-      //       const versions =
-      //         application[tenant][appGroup][req.applicationName][fabrics][
-      //           req.artifact
-      //         ];
-
-      //       // const appw = structuredClone(application);
-
-      //       // await this.createRedisFiles(appw, '', 1);
-
-      //       return {
-      //         msg: 'New Version Created',
-      //         data: versions,
-      //         status: 200,
-      //       };
-      //     }
-      //   }
-
-      //   else {
-      //     const res = await this.readReddis(tenant);
-      //     let application = { ...(await JSON.parse(res)) };
-
-      //     console.log(
-      //       application,
-      //       'outside',
-      //       tenant,
-      //       appGroup,
-      //       fabrics,
-      //       req.applicationName,
-      //       req.artifact,
-      //     );
-      //     let appl = structuredClone(application);
-      //     const version = `v1`;
-      //     if (!appl.hasOwnProperty(tenant)) {
-      //       appl = {
-      //         ...appl,
-      //         [tenant]: {},
-      //       };
-      //     }
-      //     if (!appl[tenant].hasOwnProperty(appGroup)) {
-      //       appl[tenant] = { ...appl[tenant], [appGroup]: {} };
-      //     }
-      //     if (!appl[tenant][appGroup].hasOwnProperty(req.applicationName)) {
-      //       appl[tenant][appGroup] = {
-      //         ...appl[tenant][appGroup],
-      //         [req.applicationName]: {},
-      //       };
-      //     }
-
-      //     if (
-      //       !appl[tenant][appGroup][req.applicationName].hasOwnProperty(fabrics)
-      //     ) {
-      //       appl[tenant][appGroup][req.applicationName] = {
-      //         ...appl[tenant][appGroup][req.applicationName],
-      //         [fabrics]: {},
-      //       };
-      //     }
-
-      //     appl[tenant][appGroup][req.applicationName][fabrics] = {
-      //       ...appl[tenant][appGroup][req.applicationName][fabrics],
-      //       [req.artifact]: [version],
-      //     };
-      //     Object.keys(result).map(async (key) => {
-      //       await this.writeReddis(
-      //         tenant +
-      //           ':' +
-      //           appGroup +
-      //           ':' +
-      //           req.applicationName +
-      //           ':' +
-      //           fabrics +
-      //           ':' +
-      //           req.artifact +
-      //           ':' +
-      //           version +
-      //           ':' +
-      //           key,
-      //         result[key],
-      //       );
-      //     });
-      //     console.log('application created-->', appl, tenant);
-      //     await this.writeReddis(tenant, appl);
-      //     // const appw = structuredClone(appl);
-
-      //     // await this.createRedisFiles(appw, '', 1);
-      //     const versions =
-      //       appl[tenant][appGroup][req.applicationName][fabrics][req.artifact];
-
-      //     return {
-      //       msg: 'New Application Created',
-      //       data: versions,
-      //       status: 200,
-      //     };
-      //   }
-      // }
-
-      if (type === 'update') {
-        const res = await this.readReddis(tenant);
-        const applications: any = await JSON.parse(res);
-        // console.log('redis-->', JSON.stringify(applications), tenant);
-        const application = { ...applications };
-
-        // applications[tenant][appGroup][fabrics][req.applicationName][
-        //   req.artifact
-        // ] = {
-        //   ...applications[tenant][appGroup][fabrics][req.applicationName][
-        //     req.artifact
-        //   ],
-        //   [version]: {
-        //     ...applications[tenant][appGroup][fabrics][req.applicationName][
-        //       req.artifact
-        //     ][version],
-        //     ...updateResult,
-        //   },
-        // };
-        Object.keys(updateResult).map(async (key) => {
-          await this.writeReddis(
-            tenant +
-              ':' +
-              appGroup +
-              ':' +
-              req.applicationName +
-              ':' +
-              fabrics +
-              ':' +
-              req.artifact +
-              ':' +
-              version +
-              ':' +
-              key,
-            updateResult[key],
-          );
-        });
-        console.log(
-          'application exists-->',
-          JSON.stringify(application),
-          tenant,
+      Object.keys(result).forEach(async (key) => {
+        await this.writeReddis(
+          tenant +
+            ':' +
+            appGroup +
+            ':' +
+            req.applicationName +
+            ':' +
+            fabrics +
+            ':' +
+            req.artifact +
+            ':' +
+            newVersion +
+            ':' +
+            key,
+          result[key],
         );
-        await this.writeReddis(tenant, application);
-        // const appw = structuredClone(application);
-
-        // await this.createRedisFiles(appw, '', 1);
-
+      });
+      if (type === 'create') {
+        let versions = await this.getVersion(
+          tenant,
+          appGroup,
+          fabrics,
+          req.applicationName,
+          req.artifact,
+        );
+        if (versions && versions.status === 200) {
+          return {
+            status: 200,
+            data: versions.data,
+          };
+        } else {
+          return {
+            status: 400,
+            data: [],
+          };
+        }
+      } else {
         return { msg: `${version} Updated`, status: 201 };
       }
     } catch (error) {
@@ -1002,118 +459,6 @@ export class SFService {
       return parsedData[lastKey];
     } else {
       return null;
-    }
-  }
-
-  async tenantDetails() {
-    try {
-      // const saveOptions = save_options;
-      return {};
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async controlpolicy(nodeType: any) {
-    try {
-      // const configControlpolicy = config_controlpolicy;
-      // const workflowControlpolicy = workflow_controlpolicy;
-      // const configColorpolicy = config_colorpolicy;
-      // const workflowColorpolicy = workflow_colorpolicy;
-
-      return {};
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  async getpropertywindow(node) {
-    try {
-      // const property = propertyWindow.find((item) => item.node === node);
-      // if (property) {
-      //   return {
-      //     propertyType: property.PropertyType,
-      //     status: 200,
-      //   };
-      // } else {
-      //   return {
-      //     message: 'Node not found',
-      //     status: 404,
-      //   };
-      // }
-      return {};
-    } catch (err) {
-      throw err;
-    }
-  }
-
-  async getUserRoleDetails(roleId) {
-    try {
-      // const READ_ONLY = read_only;
-      // const ADMIN = admin;
-      // const DEVELOPER = developer;
-      // let response = null;
-      // switch (roleId) {
-      //   case READ_ONLY:
-      //     response = { statusCode: 200, roleType: 'READ_ONLY' };
-      //     break;
-      //   case ADMIN:
-      //     response = { statusCode: 200, roleType: 'ADMIN' };
-      //     break;
-      //   case DEVELOPER:
-      //     response = { statusCode: 200, roleType: 'DEVELOPER' };
-      //     break;
-      //   default:
-      //     response = { statusCode: 400, roleType: null };
-      //     break;
-      // }
-      return {};
-    } catch (error) {
-      throw error;
-    }
-  }
-
-  // createVersionFolder(req, version) {
-  //   console.log('createVersionFolder');
-  //   fs.mkdirSync(
-  //     `${app_pfd_path}/${req.applicationName}/${req.artifact}/v${version}`,
-  //     (err) => {
-  //       // console.log(err);
-  //     },
-  //   );
-  //   console.log('createVersionFolder-END');
-  // }
-  // createWorkFlow(req, folderVersion) {
-  //   console.log('createWorkFlow');
-  //   try {
-  //     fs.writeFileSync(
-  //       `${app_pfd_path}/${req.applicationName}/${req.artifact}/v${folderVersion}/artifact.json`,
-  //       JSON.stringify(req.workFlow),
-  //     );
-  //   } catch (error) {
-  //     return error;
-  //   }
-  //   console.log('createWorkFlow-END');
-  // }
-  // createConfiqureFile(req, folderVersion) {
-  //   try {
-  //     const keys = Object.keys(req.configuration);
-  //     for (let configure of keys) {
-  //       fs.writeFileSync(
-  //         `${app_pfd_path}/${req.applicationName}/${req.artifact}/v${folderVersion}/${configure}.json`,
-  //         JSON.stringify(req.configuration[configure]),
-  //       );
-  //     }
-  //   } catch (error) {
-  //     return error;
-  //   }
-  // }
-
-  applicationDetails() {
-    try {
-      return {};
-    } catch (error) {
-      throw error;
     }
   }
 
@@ -1229,10 +574,4 @@ export class SFService {
 
     return outputJSON;
   }
-
-  // async getRedis(tenant) {
-  //   const js = await redis.call('JSON.GET', tenant);
-
-  //   return js;
-  // }
 }

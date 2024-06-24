@@ -78,36 +78,6 @@ export class UfSldController {
     );
   }
 
-  // @Get('applicationName')
-  // async getApplicationName(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.ufSldService.getApplicationList(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.fabrics,
-  //   );
-  // }
-
-  @Get('propertyWindow')
-  async propertyWindow(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    return this.ufSldService.getpropertywindow(query.node);
-  }
-
-  // @Get('flowName')
-  // async getFlowName(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.ufSldService.getFlowList(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.fabrics,
-  //     query.applicationName,
-  //   );
-  // }
-
   @Get('defaultVersion')
   async getdefaultversion(
     @Query(new ValidationPipe({ transform: true })) query: any,
@@ -115,16 +85,6 @@ export class UfSldController {
     return await this.ufSldService.getDefaultVersion();
   }
 
-  // @Get('fabricsList')
-  // async fabricsList(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.ufSldService.getFabrics(
-  //     query.tenant,
-  //     query.appGroup,
-
-  //   );
-  // }
   @Post()
   async saveJson(
     @Body() req: any,
@@ -140,13 +100,6 @@ export class UfSldController {
     );
   }
 
-  // @Get('/sync')
-  // async syncToFolder(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ) {
-  //   return this.ufSldService.syncToFolder(query.tenant);
-  // }
-
   @Delete('/deleteApplication')
   async deleteApplication(
     @Query(new ValidationPipe({ transform: true })) query: any,
@@ -158,64 +111,4 @@ export class UfSldController {
       query.fabrics,
     );
   }
-
-  @Get('applicationDetails')
-  async applicationDetails() {
-    return this.ufSldService.applicationDetails();
-  }
-
-  @Get('/tenantDetails')
-  async tenantDetails() {
-    return this.ufSldService.tenantDetails();
-  }
-
-  @Get('/controlpolicy')
-  async controlpolicy(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    return this.ufSldService.controlpolicy(query.nodeType);
-  }
-
-  @Get('/userRole')
-  async userRole(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    return this.ufSldService.getUserRoleDetails(query.roleId);
-  }
-
-  // @Get('/redis')
-  // async redisCheck(): Promise<any> {
-  //   return await this.cacheManager.set('torus', {
-  //     tenant: {
-  //       application1: {
-  //         pfflow: {
-  //           v1: {
-  //             data: '100',
-  //           },
-  //           v2: {
-  //             data: '200',
-  //           },
-  //         },
-  //       },
-  //       application2: {
-  //         pfflow: {
-  //           v1: {
-  //             data: '100',
-  //           },
-  //           v2: {
-  //             data: '200',
-  //           },
-  //         },
-  //       },
-  //     },
-  //   });
-  //   // await this.cacheManager.get('sname')
-  // }
-
-  // @Get('/getredis')
-  // async getredis(
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.ufSldService.getRedis(query.tenant);
-  // }
 }

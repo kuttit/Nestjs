@@ -9,9 +9,8 @@ import { PeCommonService } from './peCommonService';
 import { SavehandlerService } from './savehandlerService';
 import { LogController } from './log.controller';
 import { PeService } from './pe.service';
-import { JwtService } from '@nestjs/jwt';
 import { CommonService } from 'src/commonService';
-
+import { JwtService } from '@nestjs/jwt';
 
 
 @Module({
@@ -19,8 +18,8 @@ import { CommonService } from 'src/commonService';
   controllers: [PeController,LogController],
   providers: [RedisService,CommonService, DebugService,NodeExecutionService, PeCommonService, PeService,SavehandlerService,JwtService],
 })
-export class PeModule
-implements NestModule 
+
+export class PeModule implements NestModule 
 {
   configure(consumer: MiddlewareConsumer) {
     //consumer.apply(AuthMiddleware).forRoutes('pe');

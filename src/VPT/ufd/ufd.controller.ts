@@ -79,30 +79,4 @@ export class UfdController {
       query.fabrics,
     );
   }
-  // @Get('version-list')
-  // async fabricVersionList(): Promise<any> {
-  //   return await this.vptUfdService.getFabricVersionList();
-  // }
-
-  // @Get('version/:version')
-  // async fabricVersion(
-  //   @Param('version') version: any
-  // ): Promise<any> {
-  //   return await this.vptUfdService.getFabricVersion(version);
-  // }
-
-  // @Put('update-version')
-  // async updateFabric(
-  //   @Body() req: any,
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ): Promise<any> {
-  //   return await this.vptUfdService.updateFabric(req, query.version);
-  // }
-
-  // @Post('save-new-version')
-  // async saveFabric(
-  //   @Body() req: any,
-  // ): Promise<any> {
-  //   return await this.vptUfdService.saveFabric(req.key, req.value);
-  // }
 }

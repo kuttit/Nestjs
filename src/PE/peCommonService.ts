@@ -2,12 +2,13 @@ import { GoRuleEngine } from "src/gorule";
 import { RedisService } from "src/redisService";
 import { Injectable, Logger } from "@nestjs/common";
 import { format } from "date-fns";
+import { CommonService } from "src/commonService";
 var _ = require('underscore');
 var { transform } = require("node-json-transform")
 
 @Injectable()
 export class PeCommonService {
-  constructor(private readonly redisService: RedisService) { }
+  constructor(private readonly redisService: RedisService,private readonly commonService: CommonService) { }
 
   private readonly logger = new Logger(PeCommonService.name);
   
@@ -411,6 +412,75 @@ export class PeCommonService {
     return mappedval;
   }
 
+  
+  async getMapper(mapperconfig:any){
+    this.logger.log("Mapper called")
+    try { 
+    let sourcerequest:any = mapperconfig.request
+    let targetresponse:any = mapperconfig.response
+    let mapData:any = mapperconfig.mapData
+   
+    for (var val in mapData) {
+      if (targetresponse.hasOwnProperty(val)) {
+        targetresponse[val] = mapData[val]
+      }
+    }
+    var obj = {}
+    obj['item'] = targetresponse
+
+    var mappedval = transform(sourcerequest, obj);    
+    //return mappedval;
+    return { "MapperResult": mappedval }
+  } catch (error) {
+    console.log(error);
+    throw error
+  }
+  }
+
+  async getPElogs(key: any, upId: any, nodeName:any,nodeId:any,nodeType:any,npc?:any,pro?:any): Promise<any>{
+    if(nodeType != 'startnode' && nodeType != 'endnode'){
+    var Req = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + nodeId + '.data.pro.request'));
+    var Res = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + nodeId + '.data.pro.response'));
+    }
+    var deci = {};
+    deci['nodeName'] = nodeName;
+    deci['nodeId'] = nodeId;
+    deci['nodeType'] = nodeType;
+    deci['request'] = Req;
+    deci['response'] = Res;    
+    if(npc && pro){
+      var setData = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + nodeId + '.data.pro');
+      await this.redisService.setJsonData(key + upId + ':'+ npc +':'+ nodeName + '.'+ pro, setData)
+    }
+    var Pelog = await this.redisService.setStreamData('PElogs', key + upId, JSON.stringify(deci));  
+    return Pelog    
+  }
+
+  async getExceptionlogs(error,status,nodeName,nodeId,PreviousArray,key,upId,npc?,pro?){
+  
+    var errorobj = await this.commonService.errorobj('TE',error,status)  
+      errorobj['nodeName'] = nodeName
+      errorobj['nodeId'] = nodeId   
+      PreviousArray.pop()
+      errorobj['previousArray'] = PreviousArray
+      await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(errorobj))
+      if(npc && pro){
+        await this.redisService.setJsonData(key+upId +':'+ npc +':'+ nodeName + '.'+ pro, JSON.stringify(errorobj), 'exception')
+      }         
+      errorobj['key']=key
+      errorobj['upId']=upId
+      return errorobj
+      //throw new BadRequestException(errorobj)
+  }
+  async getsecurityExceptionlogs(nodeName,nodeId,key,upId){
+      var secErrorObj = await this.commonService.errorobj('TE','Permission Restricted to Execute '+nodeName,403)  
+      secErrorObj['errorCategory'] = 'Security'
+      secErrorObj['nodeName'] = nodeName
+      secErrorObj['nodeId'] = nodeId  
+      await this.redisService.setStreamData('TPEExceptionlogs', key + upId, JSON.stringify(secErrorObj))
+      return secErrorObj
+  }
+
   /**
  * Creates an error object with the provided error details and node name.
  *
@@ -419,15 +489,27 @@ export class PeCommonService {
  * @return {Promise<any>} A promise that resolves to the created error object.
  */
 
-  async errorobj(error: any,): Promise<any> {
-    var errobj = {}    
-      errobj['errorGroup'] = "Technical",
-      errobj['errorCategory'] = "Redis",
-      errobj['errorType'] = "Fatal",
-      errobj['errorCode'] = "100",
-      errobj['errorDetail'] = error   
-    return errobj
-  }
+  // async errorobj(error: any,status:any): Promise<any> {
+  //   if(error.code == 'ETIMEDOUT')
+  //     status=408
+  //   var errobj = {} 
+  //     errobj['T_ErrorGroup'] = "Technical",
+  //     errobj['T_ErrorCategory'] = "Redis",
+  //     errobj['T_ErrorType'] = "Fatal",
+  //     errobj['T_ErrorCode'] = "<Hardcoded>",
+  //     errobj['errorCode'] = status,
+  //     errobj['errorDetail'] = error   
+  //   return errobj
+  // }
+
+
+  // async responseData(data: any,): Promise<any> {
+  //   var resobj = {}    
+  //   resobj['status'] = 'Success',
+  //   resobj['statusCode'] = 201,
+  //   resobj['result'] = data     
+  //   return resobj
+  // }
 
   /**  
  * Retrieves process logs from Redis and organizes them

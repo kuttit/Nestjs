@@ -1,0 +1,60 @@
+'use client'
+import { RadioGroup,RadioGroupProps  } from '@nextui-org/react'
+import { Radio,RadioProps  } from '@nextui-org/react'
+
+export const RadioGroupComponent: React.FC<RadioGroupProps> = ({
+  isDisabled,
+  defaultValue,
+  isInvalid,
+  label,
+  className,
+  orientation,
+  name,
+  value,
+  isRequired,
+  isReadOnly,
+  onChange,
+  onValueChange,
+  children,
+}) => {
+  return (
+    <RadioGroup
+      isDisabled={isDisabled}
+      defaultValue={defaultValue}
+      isInvalid={isInvalid}
+      label={label}
+      className={className}
+      orientation={orientation}
+      name={name}
+      value={value}
+      isRequired={isRequired}
+      isReadOnly={isReadOnly}
+      onChange={onChange}
+      onValueChange={onValueChange}
+    >
+        {children}
+    </RadioGroup>
+    
+  )
+}
+
+export const RadioComponent: React.FC<RadioProps> = ({
+    isDisabled,
+    isInvalid,
+    name,
+    value,
+    children,
+  }) => {
+    return (
+      <Radio
+        isDisabled={isDisabled}
+        isInvalid={isInvalid}
+        name={name}
+        value={value}
+      >
+          {children}
+      </Radio>
+      
+    )
+  }
+

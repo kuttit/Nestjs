@@ -1,0 +1,96 @@
+"use client"
+import React, { useEffect, useState } from 'react'
+  import {
+    Button,
+    Dropdown,
+    DropdownItem,
+    DropdownMenu,
+    DropdownTrigger,
+    Navbar,
+    NavbarBrand,
+    NavbarContent,
+    NavbarItem
+  } from '@nextui-org/react'
+  import { Logo } from '@/app/components/Logo'
+import { toast } from 'react-toastify'
+import { useRouter} from 'next/navigation'
+
+const NavBar=()=>{
+  const [token,setToken]=useState({})
+  const routes = useRouter()
+  useEffect(()=>{
+    const cookies = document.cookie.split('; ');
+    const cookie = cookies.find((cookie) => cookie.trim().startsWith('token='));
+    if (cookie) {
+      setToken(cookie.split('=')[1]);
+    }
+  },[])
+  const securityCheck = async (key:any,token:any,screenName:string) => {
+    try {
+    const response = await fetch('http://localhost:3002/UF/SFCheckScreen', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+      },
+      body: JSON.stringify({ sfKey: key, screenNames: screenName })
+    }).then((response) => response.json());
+    if (response[0].page) {
+      document.cookie = `currentPage=${JSON.stringify(screenName)}`
+      document.cookie = `orpSecurity=${JSON.stringify(response)}`
+      routes.push('/' + screenName)
+    } else {
+      toast.error('No Permission')
+    }
+  } catch (error) {
+    console.log(error)
+  }
+}
+ return(
+  <%_ let height = (relation.height/data2.height)*100  _%>  
+  <%_ let width = (relation.width/data2.width)*100  _%>
+  <%_ let left = (relation.position.x/data2.width)*100 _%>
+  <%_ let top = (relation.position.y/data2.height)*100  _%>
+  <%_ let mdHeight = height - (height*0.1)  _%>  
+  <%_ let mdWidth = width - (width*0.1)  _%>
+  <%_ let mdLeft = left - (left*0.1)  _%>
+  <%_ let mdTop = top - (top*0.1)  _%>
+  <%_ let smHeight = mdHeight - (mdHeight*0.1)  _%>  
+  <%_ let smWidth = mdWidth - (mdWidth*0.1)  _%>
+  <%_ let smLeft = mdLeft - (mdLeft*0.1)  _%>
+  <%_ let smTop = mdTop - (mdTop*0.1)  _%>
+  <%_ let xlHeight = height + (height*0.1)  _%>  
+  <%_ let xlWidth = width + (width*0.1)  _%>
+  <%_ let xlLeft = left + (left*0.1)  _%>
+  <%_ let xlTop = top + (top*0.1)  _%>
+
+    <div className='container absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%] 
+      sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+      md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%] 
+      xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] ' >
+        <Navbar <% '' %> <%_ for(let i=0;i<data.props.length;i++){  _%> <%_ if(data.props[i].name==='isBordered' && data.props[i].value==='true') { _%> isBordered={true} <%_ }else if(data.props.name==='isBlurred'&& data.props[i].value==='true'){ _%> isBlurred={false} <%_ } else if (data.props.name==='isMenuOpen'&& data.props[i].value==='true'){ _%> isMenuOpen={true} <%_ } _%> <%_ } _%>>
+        <NavbarBrand>
+            <Logo/>
+        <NavbarContent data-justify='start'>
+        <%_ data1.forEach(element => { _%>
+          <NavbarItem>
+            <Dropdown>
+              <DropdownTrigger>
+                <Button className='bg-transparent'><%=element.menuGroup%></Button>
+              </DropdownTrigger>
+            <DropdownMenu>
+              <%_element.screenName.forEach(elements => { _%>
+                <%_ let elementParts = elements.split("-")  _%>
+                <DropdownItem key='<%=elementParts[0]%>'  onClick={() => securityCheck('<%= elementParts[1]  %>-<%= elementParts[2]  %>',token,'<%=elementParts[0].toLowerCase()%>')}><%=elementParts[0]%></DropdownItem>
+              <%_ }) _%>
+            </DropdownMenu>
+          </Dropdown>
+        </NavbarItem> 
+        <%_ }) _%>
+        </NavbarContent>
+      </NavbarBrand>
+        </Navbar>
+    </div>
+ )
+}
+export default NavBar

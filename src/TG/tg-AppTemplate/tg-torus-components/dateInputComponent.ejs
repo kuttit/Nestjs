@@ -1,0 +1,52 @@
+'use client'
+
+import { DateInput, DateInputProps } from "@nextui-org/react"
+
+export const DateInputComponent: React.FC<DateInputProps> = ({
+  isRequired,
+  isDisabled,
+  isReadOnly,
+  labelPlacement,
+  startContent,
+  endContent,
+  granularity,
+  minValue,
+  maxValue,
+  hideTimeZone,
+  hourCycle,
+  label,
+  value,
+  className,
+  defaultValue,
+  placeholderValue,
+  onChange,
+  children,
+}) => {
+  return (
+    <DateInput
+      isRequired={isRequired}
+      isDisabled={isDisabled}
+      isReadOnly={isReadOnly}
+      labelPlacement={labelPlacement}
+      startContent={startContent}
+      endContent={endContent}
+      granularity={granularity}
+      minValue={minValue}
+      maxValue={maxValue}
+      placeholderValue={placeholderValue}
+      hideTimeZone={hideTimeZone}
+      hourCycle={hourCycle}
+      label={label}
+      value={value}
+      className={className}
+      defaultValue={defaultValue}
+      onChange={onChange}
+    >
+        {children}
+    </DateInput>
+    
+  )
+}
+
+
+

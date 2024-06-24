@@ -14,7 +14,7 @@ export class EventsController {
   constructor(private readonly eventsService: EventsService) {}
 
   @Get()
-  getCCW(@Query(new ValidationPipe({ transform: true })) query: any) {
+  getEvents(@Query(new ValidationPipe({ transform: true })) query: any) {
     return this.eventsService.getEvents(
       query.tenant,
       query.appGroup,
@@ -42,33 +42,8 @@ export class EventsController {
     );
   }
 
-  // @Get('wholeVersions')
-  // wholeVersions(@Query(new ValidationPipe({ transform: true })) query: any) {
-  //   return this.eventsService.getWholeVersion(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.app,
-  //     query.artifact,
-  //     query.version,
-  //   );
-  // }
-
-  // @Post('wholeVersion')
-  // wholeVersion(
-  //   @Body() body,
-  //   @Query(new ValidationPipe({ transform: true })) query: any,
-  // ) {
-  //   return this.eventsService.eventsWholeVersion(
-  //     query.tenant,
-  //     query.appGroup,
-  //     query.app,
-  //     query.artifact,
-  //     query.version,
-  //   );
-  // }
-
   @Post()
-  saveCCW(
+  saveEvents(
     @Body() body,
     @Query(new ValidationPipe({ transform: true })) query: any,
   ) {
@@ -87,7 +62,7 @@ export class EventsController {
   }
 
   @Delete()
-  deleteCCW(@Query(new ValidationPipe({ transform: true })) query: any) {
+  deleteEvents(@Query(new ValidationPipe({ transform: true })) query: any) {
     return this.eventsService.deleteEventVersion(
       query.tenant,
       query.appGroup,
@@ -95,7 +70,8 @@ export class EventsController {
       query.fabrics,
       query.artifact,
       query.version,
-      query.ccwVersion,
+      query.componentName,
+      query.controlName,
     );
   }
 }

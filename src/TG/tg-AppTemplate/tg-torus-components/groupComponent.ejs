@@ -1,0 +1,97 @@
+'use client'
+import { useState } from 'react'
+<%_ for (let i = 0; i < data.controls.length; i++) { _%>
+    <%_ if ( relation[data.controls[i]].nodeType !== 'group') { _%>
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'TButton') { _%>
+    import Button<%= relation[data.controls[i]].elementInfo.label  %>  from "./Button<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%>
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'Input') { _%>
+    import Input<%= relation[data.controls[i]].elementInfo.label  %>  from "./Input<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%>
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'NavBar') { _%>
+    import NavBar<%= relation[data.controls[i]].elementInfo.label  %>  from "./NavBar<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%>    
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'RadioGroup') { _%>
+    import RadioGroup<%= relation[data.controls[i]].elementInfo.label  %>  from "./RadioGroup<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%>    
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'Textarea') { _%>
+    import Textarea<%= relation[data.controls[i]].elementInfo.label  %>  from "./Textarea<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%>  
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'TimeInput') { _%>
+    import TimeInput<%= relation[data.controls[i]].elementInfo.label  %>  from "./TimeInput<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%> 
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'DateInput') { _%>
+    import DateInput<%= relation[data.controls[i]].elementInfo.label  %>  from "./DateInput<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%> 
+    <%_ } _%>
+    <%_ } _%>
+
+
+    const <%= data1 %> = (<%_ if(data2 !== '') {_%> {nodeDetails}:any <%_ } _%>) => {
+      const [data, setData] = useState({})
+      const allowedComponent:any=[]
+      const cookies = document.cookie.split(';')
+        const datas = cookies.find(Cookie => Cookie.trim().startsWith('orpSecurity='))
+        const value: string | any = datas?.split('=')[1]
+        const finalData = JSON.parse(value)
+        for(let i=0;i<finalData.length;i++){
+          for(let j=0;j<finalData[i].Components.length;j++){
+            if(finalData[i].Components[j].componentName=="<%= data1 %>"){
+              for(let k=0;k<finalData[i].Components[j].control.length;k++){    
+                allowedComponent.push(finalData[i].Components[j].control[k].toLowerCase())
+              }
+            }
+          }
+        }  
+      return (
+      <%_ let height = data.height  _%>  
+      <%_ let width = data.width  _%>
+      <%_ let left = data.position1.x  _%>
+      <%_ let top = data.position1.y  _%>
+      <%_ let mdHeight = height - (height*0.01)  _%>  
+  <%_ let mdWidth = width - (width*0.01)  _%>
+  <%_ let mdLeft = left - (left*0.01)  _%>
+  <%_ let mdTop = top - (top*0.01)  _%>
+  <%_ let smHeight = mdHeight - (mdHeight*0.01)  _%>  
+  <%_ let smWidth = mdWidth - (mdWidth*0.01)  _%>
+  <%_ let smLeft = mdLeft - (mdLeft*0.01)  _%>
+  <%_ let smTop = mdTop - (mdTop*0.01)  _%>
+  <%_ let xlHeight = height + (height*0.05)  _%>  
+  <%_ let xlWidth = width + (width*0.05)  _%>
+  <%_ let xlLeft = left + (left*0.05)  _%>
+  <%_ let xlTop = top + (top*0.05)  _%>
+      <div className='container absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%] bg-gray-100  
+        sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+        md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%]  
+        xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] '>
+            <%_ for (let i = 0; i < data.controls.length; i++) { _%>
+                <%_ if ( relation[data.controls[i]].nodeType !== 'group') { _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'TButton') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <Button<%= relation[data.controls[i]].elementInfo.label  %> user={data} <%_ if(data2 !== '') {_%>nodeDetails={nodeDetails} <%_ } _%> /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'Input') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <Input<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData} /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'NavBar') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <NavBar<%= relation[data.controls[i]].elementInfo.label  %>/></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'RadioGroup') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <RadioGroup<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData} /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'Textarea') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <Textarea<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData} /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'TimeInput') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <TimeInput<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData} /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'DateInput') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <DateInput<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData}  /></div> : <></>}
+                <%_ } _%>
+                <%_ } _%>
+                <%_ } _%>
+            </div>
+           
+      )
+    }
+
+    export default <%= data1 %>

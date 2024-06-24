@@ -374,60 +374,11 @@ export class PfdService {
           const versions =
             application[source][domain][fabrics][req.artifact].version;
 
-          //   const appw = structuredClone(application);
-
-          // await this.createRedisFiles(appw, '', 1);
           return {
             msg: 'New Application Created',
             data: versions,
             status: 200,
           };
-          //  else {
-          //             const version = `v1`;
-          //             applications[source][domain][fabrics]  = {
-          //               ...applications[source][domain][fabrics] ,
-          //               [req.artifact]: [version],
-          //             };
-          //             console.log(
-          //               'application exists-->',
-          //               JSON.stringify(application),
-          //               source,
-          //             );
-          //             await this.writeReddis(source, application);
-
-          //             Object.keys(result).map(async (key) => {
-          //               await this.writeReddis(
-          //                 source +
-          //                   ':' +
-          //                   domain +
-          //                   ':' +
-          //                   fabrics +
-          //                   ':' +
-          //                   req.applicationName +
-          //                   ':' +
-          //                   req.artifact +
-          //                   ':' +
-          //                   version +
-          //                   ':' +
-          //                   key,
-          //                 result[key],
-          //               );
-          //             });
-          //             const versions =
-          //               application[source][domain][fabrics] [
-          //                 req.artifact
-          //               ];
-
-          //             // const appw = structuredClone(application);
-
-          //             // await this.createRedisFiles(appw, '', 1);
-
-          //             return {
-          //               msg: 'New Version Created',
-          //               versions: versions,
-          //               status: 200,
-          //             };
-          //           }
         } else {
           const res = await this.readReddis(source);
           let application = { ...(await JSON.parse(res)) };
@@ -497,19 +448,6 @@ export class PfdService {
         console.log('redis-->', JSON.stringify(applications), source);
         const application = { ...applications };
 
-        // applications[source][domain][fabrics][req.applicationName][
-        //   req.artifact
-        // ] = {
-        //   ...applications[source][domain][fabrics][req.applicationName][
-        //     req.artifact
-        //   ],
-        //   [version]: {
-        //     ...applications[source][domain][fabrics][req.applicationName][
-        //       req.artifact
-        //     ][version],
-        //     ...updateResult,
-        //   },
-        // };
         Object.keys(updateResult).map(async (key) => {
           await this.writeReddis(
             source +
@@ -532,9 +470,6 @@ export class PfdService {
           source,
         );
         await this.writeReddis(source, application);
-        // const appw = structuredClone(application);
-
-        // await this.createRedisFiles(appw, '', 1);
 
         return { msg: `${version} Updated`, status: 201 };
       }
@@ -550,47 +485,4 @@ export class PfdService {
   async writeReddis(key, json): Promise<any> {
     await this.redisService.setJsonData(key, JSON.stringify(json));
   }
-  // async getFabricVersionList() {
-  //     const res = await this.appService.getJsonData("PF:defaultJson");
-  //     return Object.keys(JSON.parse(res));
-  // }
-
-  // async getFabricVersion(version: any) {
-  //     const response = await this.appService.getJsonData("PF:defaultJson");
-  //     const data = JSON.parse(response)[version];
-  //     if (data) {
-  //         return data;
-  //     } else {
-  //         return "No FabricVersion Found"
-  //     }
-  // }
-
-  // async updateFabric(req: any, version: any) {
-  //     const { key, newValue } = req;
-  //     const fabrics = await this.appService.getJsonData(key);
-  //     if (!fabrics) {
-  //         return "No Fabric Found"
-  //     }
-  //     const versionList = await this.getFabricVersionList();
-  //     if (versionList.includes(version)) {
-  //         const data = JSON.parse(fabrics);
-  //         data[version] = newValue;
-  //         const res = await this.appService.setJsonData(key, JSON.stringify(data));
-  //         return res;
-  //     } else {
-  //         return "No FabricVersion Found"
-  //     }
-  // }
-
-  // async saveFabric(key: any, value: any) {
-  //     const fabrics = await this.appService.getJsonData(key);
-  //     if (!fabrics) {
-  //         const res = await this.appService.setJsonData(key,JSON.stringify({v1:{...value}}));
-  //         return res;
-  //     } else {
-  //         const version = `v${Object.keys(JSON.parse(fabrics)).length + 1}`;
-  //         const res = await this.appService.setJsonData(key,JSON.stringify({...JSON.parse(fabrics),[version]:value}));
-  //         return res;
-  //     }
-  // }
 }

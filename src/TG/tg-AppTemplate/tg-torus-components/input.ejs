@@ -1,0 +1,132 @@
+'use client'
+import React, { <%_ for(let i=0;i<data.props.length;i++) { _%><%_ if(data.props[i].name==="isClearable" || data.props[i].name === "isVisible"){ _%>useState<%_ break;} _%><%_ } _%> } from 'react'
+import InputComponent from '@/app/components/input'
+<%_ if(data.type === "password"){ _%>
+import ButtonComponent from '@/app/components/button'
+import { FaEye } from 'react-icons/fa'
+import { FaEyeSlash } from 'react-icons/fa'
+<%_ } _%>
+
+const Input<%=data.label %> = ({setUser}:any) => {
+  const handleChange=(e:any)=>{
+
+    if (e.target.type == 'number') {
+      setUser((prev: any) => ({ ...prev, <%=data.label.toLowerCase() %>: Number(e.target.value) }))
+    } else {
+      setUser((prev: any) => ({ ...prev, <%=data.label.toLowerCase() %>: e.target.value }))
+    }
+
+  //setUser((prev:any)=>({...prev,<%=data.label.toLowerCase() %>:e.target.value}))
+    // console.log(user);
+    
+  }
+  const handleValueChange=(e:any)=>{
+    console.log('Input Value Changed')
+  }
+  const handleClear=()=>{
+    setUser('')
+  }
+  <%_ for(let i=0;i<data.props.length;i++) { _%>
+  <%_ if(data.props[i].name === "value"){ _%>
+  const [state, setState] = useState('<%= data.props[i].value _%>')
+  <%_ }_%>
+  <%_ if(data.props[i].name === "isVisible" && data.type ==="password"){ _%>
+  const [isVisible, setIsVisible] = useState<Boolean>(false)
+  const toggleVisibility = () => setIsVisible(!isVisible)
+  <%_ } _%>
+  <%_ } _%>
+
+ 
+
+  return (
+    <%_ let height = (relation.height/data2.height)*100  _%>  
+    <%_ let width = (relation.width/data2.width)*100  _%>
+    <%_ let left = (relation.position.x/data2.width)*100 _%>
+    <%_ let top =(relation.position.y/data2.height)*100  _%>
+    <%_ let mdHeight = height - (height*0.1)  _%>  
+    <%_ let mdWidth = width - (width*0.1)  _%>
+    <%_ let mdLeft = left - (left*0.1)  _%>
+    <%_ let mdTop = top - (top*0.1)  _%>
+    <%_ let smHeight = mdHeight - (mdHeight*0.1)  _%>  
+    <%_ let smWidth = mdWidth - (mdWidth*0.1)  _%>
+    <%_ let smLeft = mdLeft - (mdLeft*0.1)  _%>
+    <%_ let smTop = mdTop - (mdTop*0.1)  _%>
+    <%_ let xlHeight = height + (height*0.1)  _%>  
+    <%_ let xlWidth = width + (width*0.1)  _%>
+    <%_ let xlLeft = left + (left*0.1)  _%>
+    <%_ let xlTop = top + (top*0.1)  _%>
+      <%_ if(data.type !=="password"){ _%>
+      <div className='container' > 
+      <InputComponent
+      className='absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%]   
+      sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+      md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%] 
+      xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] '
+        type='<%= data.type %>'
+        label='<%= data.label %>'
+       // value={state}
+        onChange= {handleChange}
+      <%_ for(let i=0;i<data.props.length;i++) { _%>
+      <%_ if(data.props[i].name==="isClearable" && data.props[i].value === "true"){ _%>
+        isClearable
+      <%_ } _%>
+      <%_ if(data.props[i].name === "placeholder" && data.props[i].value !=="" ){ _%>
+        placeholder='<%= data.props[i].value %>'
+      <%_ } _%>
+      <%_ if(data.props[i].name === "isDisabled"&& data.props[i].value === "true"){ _%>
+        isDisabled={<%= data.props[i].value %>}
+      <%_ } _%>
+      <%_ if(data.props[i].name === "size" && data.props[i].value === "true"){ _%>
+        size='<%= data.props[i].value %>'
+      <%_ } _%>
+      <%_ if(data.props[i].name === "labelPlacement" && data.props[i].value === "true"){ _%>
+        labelPlacement='<%= data.props[i].value %>'
+      <%_ } _%>
+      <%_ if(data.props[i].name === "isRequired" && data.props[i].value === "true"){ _%>
+        isRequired
+      <%_ } _%>
+      <%_ if(data.props[i].name === "defaultValue" && data.props[i].value !== ''){ _%>
+        defaultValue='<%= data.props[i].value %>'
+      <%_ } _%>
+      <%_ if(data.props[i].name === "isReadOnly" && data.props[i].value === "true"){ _%>
+        isReadOnly={<%= data.props[i].value %>}
+      <%_ } _%>
+      <%_ if(data.props[i].name === "isInvalid" && data.props[i].value === "true"){ _%>
+        isInvalid={<%= data.props[i].value %>}
+      <%_ } _%>
+      <%_ } _%>
+      />
+      </div>
+      <%_ } _%>
+      <%_ if(data.type === "password"){ _%>
+      <div className='container' > 
+      <InputComponent
+      className='absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%] bg-primary-700  
+      sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+      md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%]  
+      lg:left-[<%= lgLeft %>%] lg:top-[<%= lgTop %>%] lg:h-[<%= lgHeight %>%] lg:w-[<%= lgWidth %>%] 
+      xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] '
+        label='<%= data.label %>'
+        onChange= {handleChange}
+        <%_ for(let i=0;i<data.props.length;i++) { _%>
+        <%_ if(data.props[i].name === "placeholder"){ _%>
+        placeholder='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ } _%>
+        endContent={
+          <ButtonComponent  onClick={toggleVisibility}>
+            {isVisible ? <FaEyeSlash /> as any: <FaEye /> as any}
+          </ButtonComponent>
+        }
+        type={isVisible ? 'text' : 'password'}
+      />
+    </div>
+      <%_ } _%>
+    
+  
+  )
+}
+export default Input<%=data.label %>
+
+
+

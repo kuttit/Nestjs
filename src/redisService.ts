@@ -71,7 +71,7 @@ export class RedisService {
   //Retrieves stream data from Redis
   async getStreamData(streamName) {
     try {
-      var messages = await redis.xread('STREAMS', streamName, 0 - 0);
+      var messages = await redis.xread('STREAMS', streamName, 0);
       return messages;
     } catch (error) {
       throw error;
@@ -97,7 +97,7 @@ export class RedisService {
   //Retrieves stream data from Redis with count
   async getStreamDatawithCount(count, streamName) {
     try {
-      var messages = await redis.xread('COUNT',count,'STREAMS',streamName,0 - 0);
+      var messages = await redis.xread('COUNT',count,'STREAMS',streamName,0);
       return messages;
     } catch (error) {
       throw error;

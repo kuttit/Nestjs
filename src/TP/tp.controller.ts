@@ -3,135 +3,81 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
+  HttpStatus,
   Post,
   Query,
+  Req,
   ValidationPipe,
-} from '@nestjs/common';
-import { TpService } from './tp.service';
+} from "@nestjs/common";
+import { TpService } from "./tp.service";
+import { CustomException } from "./customException";
+import { CommonService } from "src/commonService";
 
-@Controller('tp')
+@Controller("tp")
 export class TpController {
-  constructor(private readonly tpservice: TpService) {}
+  constructor(
+    private readonly tpservice: TpService,
+    private readonly commonservice: CommonService
+  ) {}
 
-  @Get('getTenantInfo')
+  @Get("getTenantInfo")
   async getTenantInfo(
-    @Query(new ValidationPipe({ transform: true })) query: any,
+    @Query(new ValidationPipe({ transform: true })) query: any
   ) {
     const { tenant } = query;
     return await this.tpservice.getTenantProfile(tenant);
   }
 
-  @Post('postTenantInfo')
+  @Post("postTenantInfo")
   async postTenantInfo(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { tenant, data } = body;
     return await this.tpservice.postTenantProfile(tenant, data);
   }
 
-  @Get('getAppGroupInfo')
-  async getAppGroupInfo(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ) {
-    const { tenant, appGroup } = query;
-    return await this.tpservice.getAppGroupInfo(tenant, appGroup);
-  }
-
-  @Post('postAppGroupInfo')
-  async postAppGroupInfo(
-    @Body(new ValidationPipe({ transform: true })) body: any,
-  ) {
-    const { tenant, appGroup, data } = body;
-    return await this.tpservice.postAppGroupInfo(tenant, appGroup, data);
-  }
-
-  @Get('getAppInfo')
-  async getAppInfo(@Query(new ValidationPipe({ transform: true })) query: any) {
-    const { tenant, appGroup, app } = query;
-    return await this.tpservice.getAppInfo(tenant, appGroup, app);
-  }
-
-  @Post('postAppInfo')
-  async postAppInfo(@Body(new ValidationPipe({ transform: true })) body: any) {
-    const { tenant, appGroup, app, data } = body;
-    return await this.tpservice.postAppInfo(tenant, appGroup, app, data);
-  }
-
-  @Get('getappgrouplist')
+  @Get("getappgrouplist")
   async getAppGroupList(
-    @Query(new ValidationPipe({ transform: true })) query: any,
+    @Query(new ValidationPipe({ transform: true })) query: any
   ) {
     const { tenant } = query;
     return this.tpservice.getAppGroupList(tenant);
   }
 
-  @Get('getapplist')
+  @Get("getapplist")
   async getAppList(@Query(new ValidationPipe({ transform: true })) query: any) {
     const { tenant, appGroup } = query;
     return this.tpservice.getAppList(tenant, appGroup);
   }
 
-  @Post('createTenant')
-  async createTenant(
-    @Body(new ValidationPipe({ transform: true })) body: any,
-  ): Promise<any> {
-    return await this.tpservice.createTenant(body);
-  }
-
-  @Post('createAppGroup')
-  async createAppGroup(
-    @Body(new ValidationPipe({ transform: true })) body: any,
-  ): Promise<any> {
-    const { appGroupObj, tenant } = body;
-    return await this.tpservice.createAppGroup(appGroupObj, tenant);
-  }
-
-  @Delete('deleteAppGroup')
+  @Delete("deleteAppGroup")
   async deleteAppGroup(
-    @Query(new ValidationPipe({ transform: true })) query: any,
+    @Query(new ValidationPipe({ transform: true })) query: any
   ): Promise<any> {
     const { appGroup, tenant } = query;
     return await this.tpservice.deleteAppGroup(appGroup, tenant);
   }
 
-  @Post('createApp')
-  async createApp(
-    @Body(new ValidationPipe({ transform: true })) body: any,
-  ): Promise<any> {
-    const { appObj, tenant, group } = body;
-    return await this.tpservice.createApp(appObj, tenant, group);
-  }
-
-  @Delete('deleteApplication')
-  async deleteApplication(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ): Promise<any> {
-    const { app, appGroup, tenant } = query;
-    return await this.tpservice.deleteApplication(app, appGroup, tenant);
-  }
-
-  @Post('getAppEnvironment')
+  @Post("getAppEnvironment")
   async getAppEnvironment(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { tenant, app } = body;
     return await this.tpservice.getAppEnvironment(tenant, app);
   }
 
-  @Post('postAppEnvironment')
+  @Post("postAppEnvironment")
   async postAppEnvironment(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { tenant, data } = body;
-    return await this.tpservice.postAppEnvironment(
-      tenant,
-      data,
-    );
+    return await this.tpservice.postAppEnvironment(tenant, data);
   }
 
-  @Post('postAppRequirement')
+  @Post("postAppRequirement")
   async postAppRequirement(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ): Promise<any> {
     const { tenant, appGroup, app, reqObj, date } = body;
     return await this.tpservice.postAppRequirement(
@@ -139,91 +85,214 @@ export class TpController {
       appGroup,
       app,
       reqObj,
-      date,
+      date
     );
   }
 
-  @Post('getAppRequirement')
+  @Post("getAppRequirement")
   async getAppRequirement(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { tenant, appGroup, app } = body;
     return await this.tpservice.getAppRequirement(tenant, appGroup, app);
   }
 
-  @Get('getAssemblerVersion')
+  @Get("getAssemblerVersion")
   async getAssemblerVersion(
-    @Query(new ValidationPipe({ transform: true })) query: any,
+    @Query(new ValidationPipe({ transform: true })) query: any
   ) {
     const { key } = query;
     return await this.tpservice.getAssemblerVersion(key);
   }
 
-  @Get('getAssemblerData')
+  @Get("getAssemblerData")
   async getAssemblerData(
-    @Query(new ValidationPipe({ transform: true })) query: any,
+    @Query(new ValidationPipe({ transform: true })) query: any
   ) {
     const { key } = query;
     return await this.tpservice.getAssemblerData(key);
   }
 
-  @Post('saveAssemblerData')
+  @Post("saveAssemblerData")
   async saveAssemblerData(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { key, data } = body;
     return await this.tpservice.saveAssemblerData(key, data);
   }
 
-  @Post('updateAssemblerData')
+  @Post("updateAssemblerData")
   async updateAssemblerData(
-    @Body(new ValidationPipe({ transform: true })) body: any,
+    @Body(new ValidationPipe({ transform: true })) body: any
   ) {
     const { key, data } = body;
     return await this.tpservice.updateAssemblerData(key, data);
   }
 
-  @Get('createTenantvpt')
-  async createTenantIfnotAvailable(
-    @Query(new ValidationPipe({ transform: true })) query: any,
-  ) {
-    const { tenant } = query;
-    return await this.tpservice.createTenantIfnotAvailable(tenant);
-  }
-
-  @Get('getORPGroupData')
+  @Get("getORPGroupData")
   async getORPData(@Query(new ValidationPipe({ transform: true })) query: any) {
     const { tenant, group } = query;
     return this.tpservice.getORPGroupData(tenant, group);
   }
 
-  @Post('updateToken')
+  @Post("updateToken")
   async updateToken(@Body(new ValidationPipe({ transform: true })) body: any) {
     const { token, ORPData } = body;
     return this.tpservice.updateTokenWithORP(token, ORPData);
   }
 
-  @Get('getSFArtifacts')
-  async getSFArtifacts(@Query(new ValidationPipe({ transform: true })) query: any) {
-    const {key} = query;
+  @Get("getSFArtifacts")
+  async getSFArtifacts(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { key } = query;
     return this.tpservice.getSFArtifacts(key);
   }
 
-  @Get('getSFVersion')
-  async getSFVersion(@Query(new ValidationPipe({ transform: true })) query: any) {
-    const {key, artifacts} = query;
+  @Get("getSFVersion")
+  async getSFVersion(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { key, artifacts } = query;
     return this.tpservice.getSFVersion(key, artifacts);
   }
 
-  @Get('getSFData')
+  @Get("getSFData")
   async getSFData(@Query(new ValidationPipe({ transform: true })) query: any) {
-    const {key, artifacts, version} = query;
+    const { key, artifacts, version } = query;
     return this.tpservice.getSFData(key, artifacts, version);
   }
 
-  @Post('postSFData')
+  @Post("postSFData")
   async postSFData(@Body(new ValidationPipe({ transform: true })) body: any) {
-    const {key, artifacts, version, data} = body;
+    const { key, artifacts, version, data } = body;
     return this.tpservice.postSFData(key, artifacts, version, data);
+  }
+
+  @Get("checkUser")
+  async checkUser(@Req() req: Request) {
+    const { authorization }: any = req.headers;
+    if (authorization) {
+      const token = authorization.split(" ")[1];
+      return this.tpservice.checkUser(token);
+    } else {
+      return new CustomException("Token not found", HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  @Get("getOrgGrpFromTSf")
+  async gettsforganisation() {
+    return this.tpservice.getorggrp();
+  }
+
+  @Get("getOrgFromTSF")
+  async getorgFromTSF(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { orgGrpCode } = query;
+    return this.tpservice.getorgFromTSF(orgGrpCode);
+  }
+
+  @Get("getRGfromTSF")
+  async getRGFromTSF(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { orgGrpCode, orgCode } = query;
+    return this.tpservice.getRGFromTSF(orgGrpCode, orgCode);
+  }
+
+  @Get("getRoleFromTSF")
+  async getRoleFromTSF(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { orgGrpCode, orgCode, roleGrpCode } = query;
+    return this.tpservice.getRoleFromTSF(orgGrpCode, orgCode, roleGrpCode);
+  }
+
+  @Get("getPSGfromTSF")
+  asyncgetPSGfromTSF(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { orgGrpCode, orgCode, roleGrpCode, roleCode } = query;
+    return this.tpservice.getPSGFromTSF(
+      orgGrpCode,
+      orgCode,
+      roleGrpCode,
+      roleCode
+    );
+  }
+
+  @Get("getPSfromTSF")
+  asyncgetPSfromTSF(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { orgGrpCode, orgCode, roleGrpCode, roleCode, psGrpCode } = query;
+    return this.tpservice.getPSFromTSF(
+      orgGrpCode,
+      orgCode,
+      roleGrpCode,
+      roleCode,
+      psGrpCode
+    );
+  }
+
+  @Get("getTenantAgApp")
+  async getTenantAgApp(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const {
+      orgGrpCode,
+      orgCode,
+      roleGrpCode,
+      roleCode,
+      psGrpCode,
+      psCode,
+    } = query;
+    return this.tpservice.getTenantAgApp(
+      orgGrpCode,
+      orgCode,
+      roleGrpCode,
+      roleCode,
+      psGrpCode,
+      psCode
+    );
+  }
+  @Get("getPortal")
+  async getPortal(@Req() req: Request) {
+    const { authorization }: any = req.headers;
+    if (authorization) {
+      const token = authorization.split(" ")[1];
+      return this.tpservice.getPortal(token);
+    } else {
+      return new CustomException("Token not found", HttpStatus.UNAUTHORIZED);
+    }
+  }
+
+  @Post("tpErrorLogs")
+  async tpErrorLogs(@Body(new ValidationPipe({ transform: true })) body: any) {
+    const { token, statusCode, errorDetails, key } = body;
+    return this.commonservice.commonErrorLogs(
+      "TP",
+      token,
+      key ?? "",
+      errorDetails,
+      statusCode
+    );
+  }
+
+  @Get("getJsonValue")
+  async getValueFromRedis(
+    @Query(new ValidationPipe({ transform: true })) query: any
+  ) {
+    const { key } = query;
+    return this.tpservice.getValueFromRedis(key);
+  }
+
+  @Post("setJsonValue")
+  async postValueinRedis(
+    @Body(new ValidationPipe({ transform: true })) body: any
+  ) {
+    const { key, data } = body;
+    return this.tpservice.postValueinRedis(key, data);
   }
 }

@@ -1,0 +1,67 @@
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { CHECK_ABILITY, RequiredRule } from './ability.decorator';
+import { JwtServices } from 'src/jwt.service';
+import { CommonService } from 'src/commonService';
+
+@Injectable()
+export class AbilitiesGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private readonly jwtService: JwtServices,
+    private readonly commonService: CommonService,
+  ) {}
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const rules =
+      this.reflector.get<RequiredRule[]>(CHECK_ABILITY, context.getHandler()) ||
+      [];
+
+    const request = context.switchToHttp().getRequest();
+
+    const token = request.headers.authorization.split(' ')[1];
+    const sfKey = request.query.sfkey;
+    const decodedToken = this.jwtService.decodeToken(token);
+    const psCode = decodedToken.psGrp.psCode;
+
+    var orpSecurity: any = await this.commonService.getSecurityJson(
+      sfKey,
+      decodedToken,
+    );
+
+    var check=false
+    if (orpSecurity.length) {
+      orpSecurity.forEach((orpSecurity) => {
+        if (orpSecurity.psCode == psCode && orpSecurity.df) {
+          orpSecurity.df.forEach((df) => {
+            if (df.resourceType == 'tables') {
+              df.tableDetails.forEach((tableDetails) => {
+                
+                if(tableDetails.resource == rules[0].subject && tableDetails.SIFlag.selectedValue == 'A' ){
+                  if(tableDetails.actionAllowed.selectedValue.includes('*')|| tableDetails.actionAllowed.selectedValue.includes((rules[0].action).toUpperCase())){
+                    check= true;
+                  }
+                }
+                else if(tableDetails.resource == rules[0].subject && tableDetails.SIFlag.selectedValue == 'E'){  
+                  
+                  if(tableDetails.actionDenied.selectedValue.includes('*')){
+                    check= false;
+                  }else if(!tableDetails.actionDenied.selectedValue.includes(rules[0].action.toUpperCase())){
+                     check = true;
+                  }
+                }
+              });
+            }
+          });
+        }
+      });
+    }
+    
+    return check
+    
+  }
+}

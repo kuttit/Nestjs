@@ -280,7 +280,7 @@ export class DebugService {
           this.logger.log("Humantask node completed..")       
         }catch(error)
         {
-          var errorobj = await this.commonService.errorobj(error) 
+          var errorobj = await this.comnService.errorobj('TE',error,error.status) 
           errorobj['previousArray'] = obj
           await this.redisService.setStreamData('TPEDebugExceptionlogs', key+upId, JSON.stringify(errorobj))            
           await this.redisService.setJsonData(key + upId+':NPCI:'+ pfjson[i].nodeName, JSON.stringify(errorobj),'exception')
@@ -381,7 +381,7 @@ export class DebugService {
             }
          
       }catch(error){
-        var errorobj = await this.commonService.errorobj(error) 
+        var errorobj = await this.comnService.errorobj('TE',error,error.status) 
         errorobj['previousArray'] = obj
         await this.redisService.setStreamData('TPEDebugExceptionlogs', key+upId, JSON.stringify(errorobj))      
         await this.redisService.setJsonData(key + upId+':NPCI:'+ pfjson[i].nodeName, JSON.stringify(errorobj), 'exception')
@@ -532,7 +532,7 @@ export class DebugService {
           await this.redisService.setStreamData('TPEDebuglogs', key+upId, JSON.stringify(deci));
     
       }catch(error){
-        var errorobj = await this.commonService.errorobj(error)     
+        var errorobj = await this.comnService.errorobj('TE',error,error.status)     
         errorobj['previousArray'] = arr  
         await this.redisService.setStreamData('TPEDebugExceptionlogs',key+upId, JSON.stringify(errorobj))
         await this.redisService.setJsonData(key + upId+':NPCI:'+ pfjson.nodeName, JSON.stringify(errorobj),'exception')     
@@ -587,7 +587,7 @@ export class DebugService {
     }
     return 'Success'
     }catch(error){
-      var errorobj = await this.commonService.errorobj(error)    
+      var errorobj = await this.comnService.errorobj('TE',error,error.status)    
       await this.redisService.setJsonData(key + upId + ':ERR:'+ pfjson[i].nodeName, JSON.stringify(errorobj))
       throw errorobj
     }
@@ -665,7 +665,7 @@ export class DebugService {
 
         }catch(error)
         {
-          var errorobj = await this.commonService.errorobj(error) 
+          var errorobj = await this.comnService.errorobj('TE',error,error.status) 
           errorobj['previousArray'] = obj
           await this.redisService.setStreamData('TPENodeDebugExceptionlogs', key+upId, JSON.stringify(errorobj))
         
@@ -761,7 +761,7 @@ export class DebugService {
               }              
               
             } catch (error) {
-              var errorobj = await this.commonService.errorobj(error)         
+              var errorobj = await this.comnService.errorobj('TE',error,error.status)         
               errorobj['previousArray'] = obj   
             await this.redisService.setStreamData('TPENodeDebugExceptionlogs', key+upId, JSON.stringify(errorobj));
             await this.redisService.setJsonData(key + upId +':NPCI:'+ pfjson[i].nodeName, JSON.stringify(errorobj) ,'exception')
@@ -917,7 +917,7 @@ export class DebugService {
         await this.redisService.setStreamData('TPENodeDebuglogs', key+upId, JSON.stringify(deci));
        
       }catch(error){
-        var errorobj = await this.commonService.errorobj(error)   
+        var errorobj = await this.comnService.errorobj('TE',error,error.status)   
         errorobj['previousArray'] = arr
         await this.redisService.setStreamData('TPENodeDebugExceptionlogs', key+upId , JSON.stringify(errorobj));  
         await this.redisService.setJsonData(key + upId+':NPCI:'+ pfjson.nodeName, JSON.stringify(errorobj), 'exception')           
