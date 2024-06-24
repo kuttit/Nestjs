@@ -77,12 +77,12 @@ pipeline {
             }
         }
 
-        stage('Run New Container') {
+       /* stage('Run New Container') {
             steps {
                 script {
                     sh "docker run -d --name torus9x-nest-app-backend-container -p 3002:3002 ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
                 }
-            }
+            } */
         }
     }
-}
+} 
