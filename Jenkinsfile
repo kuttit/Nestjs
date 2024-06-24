@@ -23,13 +23,13 @@
                 cleanWs()
             }
         }
-
         stage("Code Checkout") {
             steps {
-                git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'  
+                withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDENTIALS}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'
+                }
             }
-        }
-        
+       
         stage("Sonarqube Analysis") {
             steps {
                 withSonarQubeEnv('sonar-server') {
