@@ -14,7 +14,7 @@ pipeline {
         BUILD_NUMBER = "${BUILD_NUMBER}"
         IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}"
         DOCKERHUB_CREDENTIALS = "docker-hub"
-        GITHUB_CREDENTIALS = credentials('GIT_HUB_PAT')
+        GITHUB_CREDENTIALS = "GIT_HUB_PAT"
     }
 
     stages {
