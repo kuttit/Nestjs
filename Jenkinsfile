@@ -1,4 +1,4 @@
-  pipeline {
+pipeline {
     agent {
         label 'slave-165'
     }
@@ -23,13 +23,15 @@
                 cleanWs()
             }
         }
+
         stage("Code Checkout") {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDENTIALS}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
                     git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'
                 }
             }
-       
+        }
+
         stage("Sonarqube Analysis") {
             steps {
                 withSonarQubeEnv('sonar-server') {
@@ -39,14 +41,16 @@
                 }
             }
         }
-        
-       /*stage("Quality Gate") {
+
+        /*
+        stage("Quality Gate") {
             steps {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token'
                 }
             }
-        } */ 
+        }
+        */
 
         stage('Docker Build Image') {
             steps {
@@ -56,11 +60,13 @@
             }
         }
 
-       /* stage("TRIVY SCAN") {
+        /*
+        stage("TRIVY SCAN") {
             steps {
                 sh "trivy image ${IMAGE_NAME}:${BUILD_NUMBER} > trivyimage.txt"
             }
-        } */
+        }
+        */
 
         stage('Push Docker Image') {
             steps {
@@ -99,5 +105,4 @@
             }
         }
     }
-}
 }
