@@ -26,7 +26,7 @@
 
         stage("Code Checkout") {
             steps {
-                git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git  
+                git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'  
             }
         }
         
