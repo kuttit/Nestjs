@@ -14,7 +14,7 @@
         BUILD_NUMBER = "${BUILD_NUMBER}"
         IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}"
         DOCKERHUB_CREDENTIALS = "docker-hub"
-        GITHUB_CREDENTIALS = credentials('jenkins_PAT')
+        GITHUB_CREDENTIALS = credentials('GIT_HUB_PAT')
     }
 
     stages {
@@ -26,8 +26,7 @@
 
         stage("Code Checkout") {
             steps {
-                git url: 'https://github.com/kuttit/Nestjs.git', branch: 'master'
-                credentialsId: "${GITHUB_CREDENTIALS}"
+                git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git  
             }
         }
         
