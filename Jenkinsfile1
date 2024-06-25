@@ -47,12 +47,11 @@ pipeline {
             }
         }
 
-        stage('Push to Registry') {
+      stage('Push to Registry') {
             steps {
                 script {
-                    script {
-                    docker.withRegistry("${DOCKER_REGISTRY}", '') {
-                        sh "docker push ${IMAGE_NAME}:${BUILD_NUMBER}"
+                    docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
+                        sh "docker push ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
                     }
                 }
             }
