@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: torus9x-nest-app-backend-container
-        image: 192.168.2.164:5000/torus9x-nest-app:${BUILD_NUMBER}
+        image: 192.168.2.164:5000/torus9x-nest-app:5
         imagePullPolicy: IfNotPresent 
         ports:
         - name: http
