@@ -21,23 +21,24 @@ spec:
         ports:
         - name: http
           containerPort: 3002
-env
-    - name: redis host
-      value :192.168.2.165
-      - name: redis port
-      value :8085
-      livenessProbe:
-            httpGet:
-              path: /
-              port: 3002
-            initialDelaySeconds: 30   # Adjust the initial delay here
+        env:
+        - name: redis_host  # Corrected key name from "redis host" to "redis_host"
+          value: "192.168.2.165"
+        - name: redis_port  # Corrected key name from "redis port" to "redis_port"
+          value: "8085"
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 3002
+          initialDelaySeconds: 30   # Adjust the initial delay here
         readinessProbe:
-            httpGet:
-              path: /
-              port: 3002
-            initialDelaySeconds: 30   # Adjust the initial delay here
- ---
- apiVersion: v1
+          httpGet:
+            path: /
+            port: 3002
+          initialDelaySeconds: 30   # Adjust the initial delay here
+
+---
+apiVersion: v1
 kind: Service
 metadata:
   name: nestjs-app
@@ -50,5 +51,4 @@ spec:
     targetPort: 3002
     nodePort: 30002
   selector:
-    app: nestjs-app           
-
+    app: nestjs-app
