@@ -1,11 +1,8 @@
-apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: nestjs-app
-  labels:
-    app: nestjs-app
 spec:
-  replicas: 2
+  replicas: 1  
   selector:
     matchLabels:
       app: nestjs-app
@@ -16,23 +13,11 @@ spec:
     spec:
       containers:
       - name: torus9x-nest-app-backend-container
-        image: 192.168.2.164:5000/torus9x-nest-app:${BUILD_NUMBER}
-        imagePullPolicy: IfNotPresent
+        image: 192.168.2.164:5000/torus9x-nest-app:${IMAGE_TAG}
         ports:
-        - name: http
-          containerPort: 3002
+        - containerPort: 3002
         env:
-        - name: redis_host
-          value: 192.168.2.165
-        - name: redis_port
-          value: 8085
-        livenessProbe:
-          httpGet:
-            path: /
-            port: http  # Corrected port name to match container port
-          initialDelaySeconds: 30
-        readinessProbe:
-          httpGet:
-            path: /
-            port: http  # Corrected port name to match container port
-          initialDelaySeconds: 30
+        - name: redis_host  # Corrected to use underscore instead of space
+          value: "192.168.2.165"
+        - name: redis_port  # Corrected to use underscore instead of space
+          value: "8085"
