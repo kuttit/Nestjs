@@ -35,4 +35,4 @@ spec:
           httpGet:
             path: /
             port: 3002
-          initialDelaySeconds: 30
+         initialDelaySeconds: 30
