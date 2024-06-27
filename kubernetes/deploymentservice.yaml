@@ -17,26 +17,25 @@ spec:
       containers:
       - name: torus9x-nest-app-backend-container
         image: "192.168.2.164:5000/torus9x-nest-app:${BUILD_NUMBER}"
-        imagePullPolicy: IfNotPresent 
+        imagePullPolicy: IfNotPresent
         ports:
         - name: http
           containerPort: 3002
         env:
-        - name: redis_host  # Corrected key name from "redis host" to "redis_host"
+        - name: redis_host
           value: "192.168.2.165"
-        - name: redis_port  # Corrected key name from "redis port" to "redis_port"
+        - name: redis_port
           value: "8085"
         livenessProbe:
           httpGet:
             path: /
             port: 3002
-          initialDelaySeconds: 30   # Adjust the initial delay here
+          initialDelaySeconds: 30
         readinessProbe:
           httpGet:
             path: /
             port: 3002
-          initialDelaySeconds: 30   # Adjust the initial delay here
-
+          initialDelaySeconds: 30
 ---
 apiVersion: v1
 kind: Service
