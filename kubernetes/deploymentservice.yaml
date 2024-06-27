@@ -25,7 +25,7 @@ spec:
         - name: redis_host
           value: 192.168.2.165
         - name: redis_port
-          value: 8085
+          value: "8085"
         livenessProbe:
           httpGet:
             path: /
@@ -51,3 +51,4 @@ spec:
     nodePort: 30002
   selector:
     app: nestjs-app
+
