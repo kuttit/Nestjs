@@ -51,4 +51,3 @@ spec:
     nodePort: 30002
   selector:
     app: nestjs-app
-
