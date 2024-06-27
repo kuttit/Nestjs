@@ -20,19 +20,19 @@ spec:
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
-          containerPort: 3002  # Fixed indentation and added missing 'containerPort' key
+          containerPort: 3002
         env:
         - name: redis_host
-          value: 192.168.2.165  # Ensure value is quoted if needed
+          value: 192.168.2.165
         - name: redis_port
-          value: 8085  # Ensure value is quoted if needed
+          value: 8085
         livenessProbe:
           httpGet:
-            path: /  # Correct path for livenessProbe
-            port: http  # Use the port name defined in 'ports' section
+            path: /
+            port: http  # Corrected port name to match container port
           initialDelaySeconds: 30
         readinessProbe:
           httpGet:
-            path: /  # Correct path for readinessProbe
-            port: http  # Use the port name defined in 'ports' section
+            path: /
+            port: http  # Corrected port name to match container port
           initialDelaySeconds: 30
