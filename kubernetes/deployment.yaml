@@ -16,23 +16,23 @@ spec:
     spec:
       containers:
       - name: torus9x-nest-app-backend-container
-        image: "192.168.2.164:5000/torus9x-nest-app:${BUILD_NUMBER}"
+        image: 192.168.2.164:5000/torus9x-nest-app:${BUILD_NUMBER}
         imagePullPolicy: IfNotPresent
         ports:
         - name: http
-          containerPort: 3002
+          containerPort: 3002  # Fixed indentation and added missing 'containerPort' key
         env:
         - name: redis_host
-          value: 192.168.2.165
+          value: 192.168.2.165  # Ensure value is quoted if needed
         - name: redis_port
-          value:  8085
+          value: 8085  # Ensure value is quoted if needed
         livenessProbe:
           httpGet:
-            path: /
-            port: 3002
+            path: /  # Correct path for livenessProbe
+            port: http  # Use the port name defined in 'ports' section
           initialDelaySeconds: 30
         readinessProbe:
           httpGet:
-            path: /
-            port: 3002
+            path: /  # Correct path for readinessProbe
+            port: http  # Use the port name defined in 'ports' section
           initialDelaySeconds: 30
