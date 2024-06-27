@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nextjs-app
+  labels:
+    app: nextjs-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nextjs-app
+  template:
+    metadata:
+      labels:
+        app: nextjs-app
+    spec:
+      containers:
+      - name: torus9x-next-app-frontend-container
+        image: 192.168.2.164:5000/torus9x-next-app
+        imagePullPolicy: IfNotPresent 
+        ports:
+        - name: http
+          containerPort: 3000
+env
+    - name: AUTH_SECRET
+      value :"72BLtJ8IXhoJCKZbU5XRi66MVxykBI5b"
+      - name: GOOGLE_ID
+      value :"384586065984-tmbh1gu0d4q86mi0cosonsjrcqvsj4ud.apps.googleusercontent.com"
+     - name: GOOGLE_SECRET
+      value :"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"
+     - name: GITHUB_CLIENT_ID
+      value :"4125e84768785719ba40"
+     - name: GITHUB_CLIENT_SECRET
+      value :"490630bc44ea85ca77bf71770378064bbe12af4f"
+     - name: NEXT_PUBLIC_REACT_APP_API_URL
+      value :"http://192.168.2.165:3002/"
+    - name: NEXT_PUBLIC_KEYCLOAK_HOSTED_URL
+      value :"http://192.168.2.165:8085/"
+   - name: NEXTAUTH_URL
+      value :"http://192.168.2.164:3000"
+
+      livenessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30   # Adjust the initial delay here
+        readinessProbe:
+            httpGet:
+              path: /
+              port: 3000
+            initialDelaySeconds: 30   # Adjust the initial delay here
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nextjs-app
+  labels:
+    app: nextjs-app
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 3000
+    nodePort: 30005
+  selector:
+    app: nextjs-app

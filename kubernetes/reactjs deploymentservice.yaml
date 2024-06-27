@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: reactjs-app
+  labels:
+    app: reactjs-app
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: reactjs-app
+  template:
+    metadata:
+      labels:
+        app: reactjs-app
+    spec:
+      containers:
+      - name: torus9x-react-app-frontend-container
+        image: 192.168.2.164:5000/torus9x-react-app:2
+        imagePullPolicy: IfNotPresent
+        ports:
+        - name: http
+          containerPort: 3000
+        env:
+        - name: REACT_APP_API_URL
+          value: "http://192.168.2.165:3002/"
+        - name: REACT_APP_KEYCLOCK
+          value: "http://192.168.2.165:8085"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: reactjs-app
+  labels:
+    app: reactjs-app
+spec:
+  type: NodePort
+  ports:
+  - port: 3001
+    targetPort: 3000
+    nodePort: 30001
+  selector:
+    app: reactjs-app
