@@ -12,6 +12,8 @@ pipeline {
         APP_NAME = "torus9x-nest-app"
         DOCKER_REGISTRY = "192.168.2.164:5000"
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
+        BUILD_NUMBER = "${BUILD_NUMBER}"
+        IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}"
     }
 
     stages {
