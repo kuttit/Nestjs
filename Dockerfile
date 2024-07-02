@@ -2,7 +2,7 @@
 FROM node:20 AS build
 
 # Upgrade npm
-# RUN npm i -g npm
+RUN npm i -g npm
 
 WORKDIR /usr/src/app
 COPY package*.json pnpm-lock.yaml ./
