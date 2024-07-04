@@ -24,14 +24,16 @@ pipeline {
                     branch: 'master'
             }
         }
-   stage('Docker Build Image') {
+
+        stage('Docker Build Image') {
             steps {
                 script {
                     sh "docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} ."
                 }
             }
         }
-       stage('Push to Registry') {
+
+        stage('Push to Registry') {
             steps {
                 script {
                     docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
@@ -41,12 +43,13 @@ pipeline {
             }
         }
 
-        
         stage('Updating Kubernetes deployment file') {
             steps {
-                sh "cat kubernetes/deploymentservice.yaml"
-                sh sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deploymentservice.yaml"
-                sh "cat kubernetes/deploymentservice.yaml"
+                script {
+                    sh "cat kubernetes/deploymentservice.yaml"
+                    sh "sed -i 's/replaceImageTag/${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
+                    sh "cat kubernetes/deploymentservice.yaml"
+                }
             }
         }
 
