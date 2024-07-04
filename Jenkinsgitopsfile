@@ -35,7 +35,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry("${DOCKER_REGISTRY}", "") {
+                    docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push('latest')
                     }
