@@ -1,76 +1,67 @@
 pipeline {
-    agent slave-174 
+    agent { label 'slave-174' } // Use label to specify the Jenkins agent
 
-environment {
+    environment {
         DOCKER_REGISTRY = "192.168.2.164:5000"
-        APP_NAME = ""torus9x-react-app""
-        BUILD_NUMBER= "${BUILD_NUMBER}"
-        IMAGE_NAME = "${DOCKER_REGISTRY" + "/" + "${APP_NAME}"
+        APP_NAME = "torus9x-react-app"
+        BUILD_NUMBER = "${BUILD_NUMBER}"
+        IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}" // Correct concatenation
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
-        GITHUB_TOKEN =  "GIT_HUB_PAT"
+        GITHUB_TOKEN = "GIT_HUB_PAT"
+    }
+
+    stages {
+        stage('Cleanup Workspace') {
+            steps {
+                cleanWs()
+            }
         }
 
+        stage('Checkout SCM') {
+            steps {
+                git credentialsId: "${GITHUB_CREDENTIALS}", 
+                    url: 'https://github.com/kuttit/Nestjs.git',
+                    branch: 'master'
+            }
+        }
 
-
-stages {
-        stage('Cleanup Workspace'){
+        stage('Build Docker Image') {
             steps {
                 script {
-                    cleanWs()
+                    docker_image = docker.build("${IMAGE_NAME}")
                 }
             }
         }
-        stage('Checkout SCM'){
+
+        stage('Push Docker Image') {
             steps {
-                git credentialsId: '"${GITHUB_CREDENTIALS}"', 
-                url: 'https://https://github.com/kuttit/Nestjs.git',
-                branch: 'master'
-            }
-        }
-        stage('Build Docker Image'){
-            steps {
-                script{
-                    docker_image = docker.build "${IMAGE_NAME}"
-                }
-            }
-        }
-        stage('Push Docker Image'){
-            steps {
-                script{
-                    docker.withRegistry(("http://${DOCKER_REGISTRY}", '' ){
+                script {
+                    docker.withRegistry("${DOCKER_REGISTRY}", "") {
                         docker_image.push("${BUILD_NUMBER}")
                         docker_image.push('latest')
-                       
                     }
                 }
             }
-        } 
+        }
 
-       /* stage('Delete Docker Images'){
-            steps {
-                sh "docker rmi ${IMAGE_NAME}:${BUILD_NUMBER}"
-                sh "docker rmi ${IMAGE_NAME}:latest"
-            }
-        } */
-
-
-  stage('Updating Kubernetes deployment file'){
+        stage('Updating Kubernetes deployment file') {
             steps {
                 sh "cat kubernetes/deploymentservice.yaml"
                 sh "sed -i 's/${APP_NAME}.*/${APP_NAME}:${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
                 sh "cat kubernetes/deploymentservice.yaml"
             }
         }
-        stage('Push the changed deployment file to Git'){
+
+        stage('Push the changed deployment file to Git') {
             steps {
-                script{
+                script {
                     sh """
                     git config --global user.name "kuttit"
                     git config --global user.email "kuttit@gsstvl.com"
-                    git add deploymentservice.yaml
-                    git commit -m 'Updated the deployment file' """
-                   sh "git push https://${GITHUB_TOKEN}@github.com/kuttit/github.com/kuttit/Nestjs.git master"
-                    }
+                    git add kubernetes/deploymentservice.yaml
+                    git commit -m 'Updated the deployment file'
+                    git push https://${GITHUB_TOKEN}@github.com/kuttit/Nestjs.git master
+                    """
                 }
             }
         }
