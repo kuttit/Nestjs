@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = "192.168.2.164:5000"
-        APP_NAME = "torus9x-react-app"
+        APP_NAME = "torus9x-nest-app"
         BUILD_NUMBER = "${BUILD_NUMBER}"
         IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}" // Correct concatenation
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
