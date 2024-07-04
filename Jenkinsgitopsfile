@@ -5,7 +5,6 @@ pipeline {
         DOCKER_REGISTRY = "192.168.2.164:5000"
         APP_NAME = "torus9x-nest-app"
         BUILD_NUMBER = "${BUILD_NUMBER}"
-        IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}" // Correct concatenation
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
         GITHUB_TOKEN = "GIT_HUB_PAT"
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -25,30 +24,28 @@ pipeline {
                     branch: 'master'
             }
         }
-
-        stage('Build Docker Image') {
+   stage('Docker Build Image') {
             steps {
                 script {
-                    docker_image = docker.build("${IMAGE_NAME}")
+                    sh "docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} ."
                 }
             }
         }
-
-        stage('Push Docker Image') {
+       stage('Push to Registry') {
             steps {
                 script {
                     docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
-                        docker_image.push("${BUILD_NUMBER}")
-        
+                        sh "docker push ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
                     }
                 }
             }
         }
 
+        
         stage('Updating Kubernetes deployment file') {
             steps {
                 sh "cat kubernetes/deploymentservice.yaml"
-                sh "sed -i 's/${APP_NAME}.*/${APP_NAME}:replaceImageTag${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
+                sh sed -i "s/replaceImageTag/${BUILD_NUMBER}/g" kubernetes/deploymentservice.yaml"
                 sh "cat kubernetes/deploymentservice.yaml"
             }
         }
