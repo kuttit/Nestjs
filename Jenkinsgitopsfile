@@ -8,6 +8,7 @@ pipeline {
         IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}" // Correct concatenation
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
         GITHUB_TOKEN = "GIT_HUB_PAT"
+        IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
     stages {
@@ -47,7 +48,7 @@ pipeline {
         stage('Updating Kubernetes deployment file') {
             steps {
                 sh "cat kubernetes/deploymentservice.yaml"
-                sh "sed -i 's/${APP_NAME}.*/${APP_NAME}:${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
+                sh "sed -i 's/${APP_NAME}.*/${APP_NAME}:replaceImageTag${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
                 sh "cat kubernetes/deploymentservice.yaml"
             }
         }
