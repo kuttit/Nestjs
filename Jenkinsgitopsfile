@@ -56,13 +56,15 @@ pipeline {
         stage('Push the changed deployment file to Git') {
             steps {
                 script {
-                    sh """
-                    git config --global user.name "kuttit"
-                    git config --global user.email "kuttit@gsstvl.com"
-                    git add kubernetes/deploymentservice.yaml
-                    git commit -m 'Updated the deployment file'
-                    git push https://${GITHUB_TOKEN}@github.com/kuttit/Nestjs.git master
-                    """
+                    withCredentials([usernamePassword(credentialsId: 'GIT_HUB_PAT', passwordVariable: 'GIT_HUB_PAT')]) {
+                        sh """
+                        git config --global user.name "kuttit"
+                        git config --global user.email "kuttit@gsstvl.com"
+                        git add kubernetes/deploymentservice.yaml
+                        git commit -m 'Updated the deployment file'
+                        git push https://username:${GIT_HUB_PAT}@github.com/kuttit/Nestjs.git master
+                        """
+                    }
                 }
             }
         }
