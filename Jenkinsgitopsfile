@@ -3,22 +3,25 @@ pipeline {
 
     environment {
         DOCKER_REGISTRY = "192.168.2.164:5000"
-        APP_NAME = "torus9x-nest-app"
+        APP_NAME = "torus9x-react-app"
         IMAGE_TAG = "${BUILD_NUMBER}"
         IMAGE_NAME = "${DOCKER_REGISTRY}/${APP_NAME}"
         GITHUB_CREDENTIALS = "GIT_HUB_PAT"
+        GITHUB_TOKEN = "GIT_HUB_PAT"
     }
 
     stages {
         stage('Cleanup Workspace') {
             steps {
-                cleanWs()
+                script {
+                    cleanWs()
+                }
             }
         }
 
         stage('Checkout SCM') {
             steps {
-                git credentialsId: "${GITHUB_CREDENTIALS}", 
+                git credentialsId: "${GITHUB_CREDENTIALS}",
                     url: 'https://github.com/kuttit/Nestjs.git',
                     branch: 'master'
             }
@@ -27,7 +30,7 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    docker_image = docker.build("${IMAGE_NAME}:${IMAGE_TAG}")
+                    docker_image = docker.build "${IMAGE_NAME}:${IMAGE_TAG}"
                 }
             }
         }
@@ -35,7 +38,7 @@ pipeline {
         stage('Push Docker Image') {
             steps {
                 script {
-                    docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
+                    docker.withRegistry("${DOCKER_REGISTRY}") {
                         docker_image.push("${IMAGE_TAG}")
                         docker_image.push('latest')
                     }
@@ -66,7 +69,7 @@ pipeline {
                     git config --global user.email "kuttit@gsstvl.com"
                     git add kubernetes/deploymentservice.yaml
                     git commit -m 'Updated the deployment file'
-                    git push https://${GITHUB_CREDENTIALS}@github.com/kuttit/Nestjs.git master
+                    git push https://${GITHUB_TOKEN}@github.com/kuttit/Nestjs.git master
                     """
                 }
             }
