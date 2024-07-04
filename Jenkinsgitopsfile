@@ -46,12 +46,12 @@ pipeline {
             }
         }
 
-        stage('Delete Docker Images') {
+       /* stage('Delete Docker Images') {
             steps {
                 sh "docker rmi ${IMAGE_NAME}:${IMAGE_TAG}"
                 sh "docker rmi ${IMAGE_NAME}:latest"
             }
-        }
+        } */
 
         stage('Updating Kubernetes deployment file') {
             steps {
