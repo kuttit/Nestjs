@@ -84,7 +84,7 @@ pipeline {
                 sh "cat kubernetes/deployment.yaml"
             }
         }
-        stage('Deploy to Kubernetes') {
+       /* stage('Deploy to Kubernetes') {
             steps {
                 script {
                     dir('kubernetes') { 
@@ -97,6 +97,6 @@ pipeline {
                     }
                 }
             }
-        }
+        } */
     }
 }
