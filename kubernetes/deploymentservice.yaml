@@ -12,6 +12,9 @@ spec:
     metadata:
       labels:
         app: nestjs-app
+      annotations:
+        sidecar.opentelemetry.io/inject: "true"
+        instrumentation.opentelemetry.io/inject-nodejs: "true"  
     spec:
       containers:
       - name: nest-app-backend-container
