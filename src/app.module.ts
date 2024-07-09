@@ -8,7 +8,7 @@ import {
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { RedisService } from './redisService';
-import { PeModule } from './PE/pe.module';
+import { TeModule } from './TE/te.module';
 import { UfdModule } from './VPT/ufd/ufd.module';
 import { UfSldModule } from './VPT/uf_sld/uf_sld.module';
 import { PfdModule } from './VPT/pfd/pfd.module';
@@ -29,11 +29,13 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { FILE_UPLOADS_DIR } from './fileUpload/constants';
 import { TpModule } from './TP/tp.module';
+import { CommonService } from './commonService';
+import { JwtService } from '@nestjs/jwt';
 
 
 @Module({
   imports: [
-    PeModule,
+    TeModule,
     ConfigModule.forRoot({ envFilePath: `${process.env.NODE_ENV}.env` }),
     TgModule,
     // UfdModule,
@@ -60,7 +62,10 @@ import { TpModule } from './TP/tp.module';
   controllers: [AppController, UploadController],
   providers: [
     AppService,
-    RedisService,
+    RedisService, 
+    CommonService, 
+    JwtService,
+
     { provide: APP_FILTER, useClass: HttpExceptionFilter },
     { provide: APP_PIPE, useClass: ValidationPipe },
   ],

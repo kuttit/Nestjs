@@ -54,12 +54,12 @@ export const tenantProfileTemplate = {
       ],
     },
   ],
-  ENV:{
-      code: "",
-      HostName: "",
-      HostIP: "",
-      volumePath: "",
-  }
+  ENV: {
+    code: '',
+    HostName: '',
+    HostIP: '',
+    volumePath: '',
+  },
 };
 
 export const appGroupTemplate = {
@@ -78,3 +78,6 @@ export const appTemplate = {
 };
 
 export type group = 'role' | 'org' | 'ps' | 'all';
+
+export const auth_secret =
+  'HpZnm7V6YeshFDVbwACyOtx6oa6QSbraZoNyU9fwtGYUL1Rnc6PN5QUosu9BcqVBo5L6QeSs';

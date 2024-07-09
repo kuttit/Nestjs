@@ -5,6 +5,7 @@ import { RedisService } from 'src/redisService';
 @Injectable()
 export class PfPfdService {
   constructor(private readonly redisService: RedisService) {}
+
   async getJson(
     applicationName,
     version,
@@ -95,10 +96,40 @@ export class PfPfdService {
 
       console.log('🚀 ~ AppService ~ res:', result);
       res = {
-        nodes: JSON.parse(result[0]) || [],
-        nodeEdges: JSON.parse(result[1]) || [],
-        nodeProperty: JSON.parse(result[2]) || {},
+        nodes: JSON.parse(result[0]),
+        nodeEdges: JSON.parse(result[1]),
+        nodeProperty: JSON.parse(result[2]),
       };
+
+      let node = res['nodes'].map((node) => {
+        if (
+          res.hasOwnProperty('nodeProperty') &&
+          res['nodeProperty'].hasOwnProperty(node.id)
+        ) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: res['nodeProperty'][node.id].nodeName,
+              nodeProperty: res['nodeProperty'][node.id],
+            },
+          };
+        } else {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              nodeProperty: {},
+            },
+          };
+        }
+      });
+
+      res = {
+        ...res,
+        nodes: node,
+      };
+
       console.log('🚀 ~ AppService ~ res:', res);
       return {
         data: res,
@@ -107,22 +138,6 @@ export class PfPfdService {
     } catch (error) {
       throw error;
     }
-
-    // try {
-    //   const res = await this.readReddis(tenant);
-    //   const application = await JSON.parse(res);
-    //   console.log('🚀 ~ AppService ~ application:', application);
-    //   let applicationDetails = {};
-
-    //   applicationDetails =
-    //     application[tenant][appGroup][fabrics][applicationName][processFlow][
-    //       version
-    //     ];
-
-    //   return { workflow: { ...applicationDetails } };
-    // } catch (error) {
-    //   throw error;
-    // }
   }
   async deleteApplication(
     applicationName: any,
@@ -366,28 +381,16 @@ export class PfPfdService {
       let nodeProSPLid = [];
 
       let flowNodes = structuredClone(req.flow.nodes);
-      let flowNodesProperty = structuredClone(req.flow.nodeProperty);
       let flowNodeEdges = req.flow.nodeEdges;
-      if (Object.keys(flowNodes).length > 0) {
-        flowNodes.forEach((element) => {
-          nodeSPLid.push(element.id);
-        });
-
-        if (typeof flowNodesProperty === 'object') {
-          Object.keys(flowNodesProperty).forEach((element) => {
-            nodeProSPLid.push(element);
-          });
-        }
-
-        nodeProSPLid.forEach((element) => {
-          if (!nodeSPLid.includes(element)) {
-            delete flowNodesProperty[element];
-          }
-        });
-      }
 
       const nodes = JSON.parse(JSON.stringify(req.flow.nodes));
       const edges = JSON.parse(JSON.stringify(req.flow.nodeEdges));
+
+      const propertyData = nodes.reduce((acc, node) => {
+        acc[node.id] = node.data.nodeProperty;
+        return acc;
+      }, {});
+
       if (nodes.length > 0 && edges.length > 0) {
         let condiforStart = false;
         let condiforEnd = false;
@@ -415,8 +418,14 @@ export class PfPfdService {
         nodeEdges: req.flow.nodeEdges,
         processFlow: [...processflowapi],
         processFlowSummary: [...processFlowSummary],
-        nodeProperty: flowNodesProperty,
+        nodeProperty: nodes.reduce((acc, node) => {
+          if (Object.keys(node.data.nodeProperty).length > 0) {
+            acc[node.id] = node.data.nodeProperty;
+          }
+          return acc;
+        }, {}),
       };
+
       let newVersion = 'v1';
       if (type === 'create') {
         let versionList = await this.getVersion(
@@ -655,10 +664,10 @@ export class PfPfdService {
           : element.property.nodeType;
 
       item.nodeId = element.id;
-      if (typeof element?.parentId === 'object') {
-        item.parentId = [...element?.parentId];
+      if (typeof element?.T_parentId === 'object') {
+        item.T_parentId = [...element?.T_parentId];
       } else {
-        item.parentId = element?.parentId;
+        item.T_parentId = element?.T_parentId;
       }
 
       item.nodeName = element.property.name;
@@ -783,12 +792,12 @@ export class PfPfdService {
     });
     let alterData = [];
     processFlow.map((ele) => {
-      if (ele.parentId.length == 0) {
+      if (ele.T_parentId.length == 0) {
         alterData.push(ele);
       }
-      if (ele.parentId.length > 0) {
+      if (ele.T_parentId.length > 0) {
         if (
-          ele.parentId.every((v) => {
+          ele.T_parentId.every((v) => {
             uniId.includes(v);
           })
         ) {
@@ -796,7 +805,7 @@ export class PfPfdService {
         } else {
           alterData.push({
             ...ele,
-            parentId: ele.parentId.filter((v) => uniId.includes(v)),
+            T_parentId: ele.T_parentId.filter((v) => uniId.includes(v)),
           });
         }
       }
@@ -816,7 +825,7 @@ export class PfPfdService {
           if (
             data.nodeType !== 'endnode' &&
             !includedId.includes(data.nodeId) &&
-            data.parentId.every((v) => includedId.includes(v))
+            data.T_parentId.every((v) => includedId.includes(v))
           ) {
             includedId.push(data.nodeId);
             proFlow.push(data);

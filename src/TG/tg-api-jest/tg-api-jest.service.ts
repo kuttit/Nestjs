@@ -25,6 +25,10 @@ export class TG_API_JestService {
      * @return {Promise<any>} a Promise that resolves once the code is successfully generated
      */
     async generatecodefortesting(key: string): Promise<any> {
+        let sessionInfo = {
+            key:'',
+            token:''
+        }
 
     let input: string = await this.redisService.getJsonData(key);
     let relarr: any = [];
@@ -79,12 +83,14 @@ export class TG_API_JestService {
         app_name + "/nest-cli.json"
     );
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/package-lock.ejs",
         "Torus_App",
         "",
         app_name + "/package-lock.json"
     );
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/package.ejs",
         "Torus_App",
         "",
@@ -117,6 +123,7 @@ export class TG_API_JestService {
     );
 
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/prisma.ejs",
         jdata,
         relarr,
@@ -263,6 +270,7 @@ export class TG_API_JestService {
     //third parameter is also any given data for ejs file
     //forth parameter is path for created file 
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/ability.factory.ejs",
         userMatrixJdata,
         userMatrix,
@@ -278,6 +286,7 @@ export class TG_API_JestService {
     );
 
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/ability.decorator.ejs",
         table,
         "",
@@ -285,6 +294,7 @@ export class TG_API_JestService {
     );
 
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/ability.guard.ejs",
         "",
         "",
@@ -309,6 +319,7 @@ export class TG_API_JestService {
     }
 
     await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/prisma.service.ejs",
         tableArray,
         "",
@@ -341,6 +352,10 @@ export class TG_API_JestService {
      * @throws {Error} If an error occurs during the directory creation process.
      */
     async CreateDir1(strReadPath: JSON, paths: any) {
+        let sessionInfo = {
+            key:'',
+            token:''
+        }
     try {
         let jsondata: any = strReadPath;
         let tables: any = jsondata.Entities;
@@ -361,6 +376,7 @@ export class TG_API_JestService {
 
         let columnForEntity: any = tables[i].columns;
         await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/service.ejs",
         column,
         tabName,
@@ -368,6 +384,7 @@ export class TG_API_JestService {
         );
 
         await this.CommonService.CreateSchemaFile(
+        sessionInfo,
         "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/controller.ejs",
         column,
         tabName,
@@ -416,8 +433,10 @@ export class TG_API_JestService {
 
     const deletionOrder = deleteOrder(data);
     let entityDeleteOrder = deletionOrder.map((table) => table.tname);
+    
     //This functions used to created test files
     await this.CommonService.CreateFileWithThreeParam(
+    sessionInfo,
     "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/e2e.spec.ejs",
     tables[i],
     tabName,
@@ -429,6 +448,7 @@ export class TG_API_JestService {
         ".e2e-spec.ts"
     );
     await this.CommonService.CreateSchemaFile(
+    sessionInfo,
     "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/enitity.ejs",
     columnForEntity,
     tabName,
@@ -436,12 +456,14 @@ export class TG_API_JestService {
     );
 
     await this.CommonService.CreateSchemaFile(
+    sessionInfo,
     "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/module.ejs",
     "",
     tabName,
     paths + "/" + tabName + "/" + tabName + ".module.ts"
     );
     await this.CommonService.CreateSchemaFile(
+    sessionInfo,
     "./src/TG/tg-AppTemplate/APIGenerationWithIAMJestEJS/app.module.ejs",
     jsondata.Entities,
     "",

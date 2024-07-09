@@ -1,0 +1,49 @@
+'use client'
+import { Textarea,TextAreaProps  } from '@nextui-org/react'
+
+const TextAreaComponent: React.FC<TextAreaProps> = ({
+  isDisabled,
+  isReadOnly,
+  isRequired,
+  minRows,
+  maxRows,
+  label,
+  labelPlacement,
+  value,
+  defaultValue,
+  placeholder,
+  className,
+  onChange,
+  onClear,
+  onValueChange,
+  onHeightChange,
+  isInvalid,
+  children,
+  type
+}) => {
+  return (
+    <Textarea
+      isDisabled={isDisabled}
+      label={label}
+      isReadOnly={isReadOnly}
+      isRequired={isRequired}
+      labelPlacement={labelPlacement}
+      value={value}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      className={className}
+      isInvalid={isInvalid}
+      onChange={onChange}
+      onClear={onClear}
+      onValueChange={onValueChange}
+      type={type}
+      minRows={minRows}
+      maxRows={maxRows}
+      onHeightChange={onHeightChange}
+    >
+        {children}
+    </Textarea>
+    
+  )
+}
+export default TextAreaComponent

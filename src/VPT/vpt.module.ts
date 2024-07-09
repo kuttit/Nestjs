@@ -15,6 +15,8 @@ import { HttpModule } from '@nestjs/axios';
 import { ExecutionModule } from './customCodeExecution/execution.module';
 import { SFModule } from './sf/sf.module';
 import { PfPfdService } from './pf_pfd/pf_pfd.service';
+import { CommonService } from 'src/commonService';
+import { JwtService } from '@nestjs/jwt';
 
 @Module({
   imports: [
@@ -30,6 +32,6 @@ import { PfPfdService } from './pf_pfd/pf_pfd.service';
     ExecutionModule,
   ],
   controllers: [VptController],
-  providers: [VptService, RedisService, PfdService,PfPfdService],
+  providers: [VptService, RedisService, PfdService,PfPfdService, CommonService,JwtService ],
 })
 export class VptModule {}

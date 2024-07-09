@@ -1,0 +1,22 @@
+import { Button, ButtonProps } from '@nextui-org/react'
+const ButtonComponent: React.FC<ButtonProps> = ({
+  isDisabled,
+  size,
+  isIconOnly,
+  className,
+  onClick,
+  children
+}) => {
+  return (
+    <Button
+      isDisabled={isDisabled}
+      size={size}
+      isIconOnly={isIconOnly}
+      className={className}
+      onClick={onClick}
+    >
+      {children}
+    </Button>
+  )
+}
+export default ButtonComponent

@@ -1,13 +1,15 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { RedisService } from 'src/redisService';
-import { CustomException } from './customException';
-import { JwtService } from '@nestjs/jwt';
 import {
-  appGroupTemplate,
-  appTemplate,
-  group,
-  tenantProfileTemplate,
-} from './constants';
+  BadRequestException,
+  CustomException,
+  ForbiddenException,
+  NotFoundException,
+  UnauthorizedException,
+} from './customException';
+import { JwtService } from '@nestjs/jwt';
+import { auth_secret, group, tenantProfileTemplate } from './constants';
+import { comparePasswords, hashPassword } from './auth/hashing.utility';
 
 @Injectable()
 export class TpService {
@@ -15,6 +17,206 @@ export class TpService {
     private readonly redisService: RedisService,
     private readonly jwtService: JwtService,
   ) {}
+
+  async throwCustomException(error: any) {
+    if (error instanceof CustomException) {
+      throw error; // Re-throw the specific custom exception
+    }
+    throw new CustomException(
+      'An unexpected error occurred',
+      HttpStatus.INTERNAL_SERVER_ERROR,
+    );
+  }
+
+  async getAllClientTenantList(type?: string) {
+    try {
+      switch (type) {
+        case 'c':
+          const keysOfClient = await this.redisService.getKeys('C');
+          //C for fetching clients
+          if (Array.isArray(keysOfClient) && keysOfClient.length) {
+            let clients = new Set([]);
+            for (let i = 0; i < keysOfClient.length; i++) {
+              const client = keysOfClient[i].split(':');
+              clients.add(client[1]);
+            }
+            return Array.from(clients);
+          } else {
+            throw new NotFoundException('No clients exists');
+          }
+        default:
+          const keysOfTenant = await this.redisService.getKeys('T');
+          //T for fetching tenants
+          if (Array.isArray(keysOfTenant) && keysOfTenant.length) {
+            let tenants = new Set([]);
+            for (let i = 0; i < keysOfTenant.length; i++) {
+              const tenant = keysOfTenant[i].split(':');
+              tenants.add(tenant[1]);
+            }
+            return Array.from(tenants);
+          } else {
+            throw new NotFoundException('No tenant exists');
+          }
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
+    }
+  }
+
+  async signIntoTorus(
+    client: string,
+    role: string,
+    username: string,
+    password: string,
+    type: string = 't',
+  ) {
+    try {
+      if (client && role && username && password) {
+        const userResponse = await this.redisService.getJsonData(
+          `${type.toUpperCase()}:${client}:users`,
+        );
+        const envAuthResponse = await this.redisService.getJsonData(
+          `${type.toUpperCase()}:${client}:envAuth`,
+        );
+        if (userResponse && envAuthResponse) {
+          const users = JSON.parse(userResponse);
+          const env = JSON.parse(envAuthResponse);
+
+          const loggedInUser = users.find((user: any) => {
+            if (
+              (user.loginId === username || user.email == username) &&
+              comparePasswords(password, user.password)
+            ) {
+              return user;
+            } else {
+              return null;
+            }
+          });
+          if (loggedInUser) {
+            const roleObj = env.roles.find(
+              (roleData: any) => roleData.roleName == role,
+            );
+            if (roleObj && roleObj.users.includes(loggedInUser.loginId)) {
+              delete loggedInUser.password;
+              const token = await this.jwtService.signAsync(
+                { ...loggedInUser, role: role, client: client },
+                {
+                  secret: auth_secret,
+                  expiresIn: '1h',
+                },
+              );
+              return { token: token, authorized: true };
+            } else {
+              delete loggedInUser.password;
+              const token = await this.jwtService.signAsync(
+                { ...loggedInUser, client: client },
+                {
+                  secret: auth_secret,
+                  expiresIn: '1h',
+                },
+              );
+              return {
+                token: token,
+                authorized: true,
+                message: 'user lack access of the selected role',
+              };
+            }
+          } else {
+            throw new NotFoundException('Please check credentials');
+          }
+        } else {
+          throw new NotFoundException(
+            'There is not enough Data to validate in selected Client',
+          );
+        }
+      } else {
+        throw new BadRequestException('Check all credentials given correctly');
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
+    }
+  }
+
+  async registerToTorus(
+    client: string,
+    username: string,
+    firstname: string,
+    lastname: string,
+    email: string,
+    mobile: string,
+    password: string,
+    type: string = 't',
+  ) {
+    try {
+      if (client && username && firstname && lastname && email && password) {
+        const responseFromRedis = await this.redisService.getJsonData(
+          `${type.toUpperCase()}:${client}:users`,
+        );
+        if (responseFromRedis) {
+          const userList = JSON.parse(responseFromRedis);
+          //  check username or email exist already in the userList and if is
+          // user name exist throw new Exception and if not register user
+          for (let i = 0; i < userList.length; i++) {
+            if (userList[i].loginId == username) {
+              throw new ForbiddenException('please provide unique username');
+            } else if (userList[i].email == email) {
+              throw new ForbiddenException(
+                'Email is already registered , provide another email or login with your account',
+              );
+            }
+          }
+          const newUser = {
+            loginId: username,
+            firstName: firstname,
+            lastName: lastname,
+            email,
+            mobile,
+            password: hashPassword(password),
+            '2FAFlag': 'N',
+          };
+          userList.push(newUser);
+          const res = await this.redisService.setJsonData(
+            `${type.toUpperCase()}:${client}:users`,
+            JSON.stringify(userList),
+          );
+          if (res) return 'User Registered Successfully';
+        } else {
+          const newUser = {
+            loginId: username,
+            firstName: firstname,
+            lastName: lastname,
+            email,
+            mobile,
+            password: hashPassword(password),
+            '2FAFlag': 'N',
+          };
+          const res = await this.redisService.setJsonData(
+            `${type.toUpperCase()}:${client}:users`,
+            JSON.stringify([newUser]),
+          );
+          if (res) return 'User Registered Successfully';
+        }
+      } else {
+        throw new BadRequestException(
+          'Please provide all necessary credentials',
+        );
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
+    }
+  }
+
+  async getUserDetails(token) {
+    try {
+      if (token) {
+        return await this.jwtService.decode(token);
+      } else {
+        throw new UnauthorizedException('token not provided');
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
+    }
+  }
 
   async getTenantProfile(tenant: string) {
     try {
@@ -781,6 +983,39 @@ export class TpService {
       return await this.redisService.setJsonData(key, JSON.stringify(value));
     } catch (error) {
       throw new CustomException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  async getAllKeys(keyPrefix: string) {
+    try {
+      const keys: any = await this.redisService.getKeys(keyPrefix);
+      if (keys && keys.length) {
+        return { data: keys };
+      } else {
+        return { error: 'No data available for the key' };
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
+    }
+  }
+  async getUserList(client) {
+    try {
+      if (client) {
+        const data = await this.redisService.getJsonData(`T:${client}:users`);
+        if (data) {
+          const userlist: any[] = JSON.parse(data);
+          return userlist.map((ele: any) => {
+            delete ele.password;
+            return ele;
+          });
+        } else {
+          throw new NotFoundException('No data available for the key');
+        }
+      } else {
+        throw new ForbiddenException('client information not available');
+      }
+    } catch (error) {
+      await this.throwCustomException(error);
     }
   }
 }

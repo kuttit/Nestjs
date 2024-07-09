@@ -1,0 +1,588 @@
+import React, { useEffect, useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import {
+  Input,
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+  Spinner,
+  useDisclosure
+} from '@nextui-org/react'
+import { CiMemoPad } from 'react-icons/ci'
+import { GrCheckboxSelected } from 'react-icons/gr'
+import { useRouter } from 'next/navigation'
+import { FaSearch } from 'react-icons/fa'
+import { toast } from 'react-toastify'
+import axios from 'axios'
+import { IoMdCheckmarkCircleOutline } from "react-icons/io";
+
+interface orpData {
+  orgGrp: any
+  psGrp: any
+  roleGrp: any
+}
+
+const Applist = ({ appGroup, selectedGrps }: any) => {
+  const routes = useRouter()
+  const [applications, setApplications] = useState([])
+  const [loading, setLoading] = useState(false)
+  const [tenant, setTenant] = useState('')
+  const [appSearchTerm, setAppSearchTerm] = useState('')
+  const [orgSearchTerm, setOrgSearchTerm] = useState('')
+  const [psSearchTerm, setPsSearchTerm] = useState('')
+  const [roleSearchTerm, setRoleSearchTerm] = useState('')
+  const [appSearchOpen, setAppSearchOpen] = useState(false)
+  const [orgSearchOpen, setOrgSearchOpen] = useState(false)
+  const [psSearchOpen, setPsSearchOpen] = useState(false)
+  const [roleSearchOpen, setRoleSearchOpen] = useState(false)
+  const [token, setToken] = useState('')
+  const [newState, setNewState] = useState(true)  
+  const [orpData, setOrpData] = useState<orpData>({
+    orgGrp: {},
+    psGrp: {},
+    roleGrp: {}
+  })
+  const [selectedApp, setSelectedApp] = useState(null);
+
+
+  useEffect(() => {
+    const res = localStorage.getItem('user')
+    if (res) {
+      const user = JSON.parse(res)
+      setTenant(user.realm)
+    }
+    const token = localStorage.getItem('token')
+    if (token) {
+      const res = JSON.parse(token)
+      setToken(res.access_token)
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      setLoading(true)
+      if (tenant && appGroup) {
+        axios
+          .get(
+            `http://localhost:3002/tp/getapplist?tenant=${tenant}&appGroup=${appGroup}`
+          )
+          // .then((res) => res.data)
+          .then(res => {
+            if (res.status == 200) {
+              setApplications(res.data)
+              setLoading(false)
+            } else {
+              setLoading(false)
+              toast.error('invalid AppGroup')
+            }
+          })
+      } else {
+        setLoading(false)
+      }
+    } catch (error) {
+      throw error
+    }
+  }, [appGroup])
+
+  const securityCheck = async (key:any,token:any,screenNames:string) => {
+    try {
+      const response = await fetch('http://localhost:3002/UF/SFCheckScreen', {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`
+          },
+          body: JSON.stringify({ sfKey: key, screenNames: screenNames })
+      });
+  
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+  
+      const responseData = await response.json();
+      return responseData;
+  } catch (error) {
+      console.error('Error:', error);
+  }
+  }
+
+  const getAllApplication = async (app: any) => {
+    if (
+      Object.keys(orpData.orgGrp).length &&
+      orpData.orgGrp.orgCode &&
+      Object.keys(orpData.psGrp).length &&
+      orpData.psGrp.psCode &&
+      Object.keys(orpData.roleGrp).length &&
+      orpData.roleGrp.roleCode
+    ) {
+      const response = await axios.post(
+        `http://localhost:3002/tp/updateToken`,
+        {
+          token: token,
+          ORPData: orpData
+        }
+      )
+      if (response.status == 201) {
+        setSelectedApp(app)
+        console.log(response.data)
+        document.cookie = `token=${response.data}`
+      }
+      if (tenant && appGroup && app) {
+        const responseData = await securityCheck('<%= data1 %>-',response.data,'<%= relation %>')
+        document.cookie = `orpSecurity=${JSON.stringify(responseData)}`
+        let defaultScreen = responseData[0].page
+        document.cookie = `currentPage=${JSON.stringify(defaultScreen)}`
+        routes.push('./'+defaultScreen)
+      }
+    } else {
+      toast.error('Please enter valid Org , service values')
+    }
+  }
+
+  console.log(orpData)
+
+  const handleOrgSelection = (org: any) => {
+    const { orgGrp } = orpData
+    var updatedOrg = structuredClone(orgGrp)
+    updatedOrg.orgGrpCode = selectedGrps.orgGrp.orgGrpCode
+    updatedOrg.orgCode = org.orgCode
+    setOrpData(prev => ({ ...prev, orgGrp: updatedOrg }))
+  }
+
+  const handlePSGSelection = (psg: any) => {
+    const { psGrp } = orpData
+    var updatedPsg = structuredClone(psGrp)
+    updatedPsg.psCode = psg.psCode
+    updatedPsg.psGrpCode = selectedGrps.psGrp.psGrpCode
+    setOrpData(prev => ({ ...prev, psGrp: updatedPsg }))
+  }
+
+  const handleRGSelection = (rg: any) => {
+    const { roleGrp } = orpData
+    var updatedRG = structuredClone(roleGrp)
+    updatedRG.roleCode = rg.roleCode
+    updatedRG.roleGrpCode = selectedGrps.roleGrp.roleGrpCode
+    setOrpData(prev => ({ ...prev, roleGrp: updatedRG }))
+  }
+
+  return (
+    <div className={`flex h-full flex-col pt-4`}>
+      <div className='flex h-[5%] flex-row justify-start pl-3 pt-4'>
+        <h2 className='flex items-center gap-2 text-start text-medium'>
+          {appGroup}
+
+          <motion.span
+            onClick={() => setAppSearchOpen(!appSearchOpen)}
+            initial={{
+              right: appSearchOpen ? '0%' : '22%',
+              top: '13.6%'
+            }}
+            animate={{ right: appSearchOpen ? '22%' : '0%' }}
+            className='cursor-pointer'
+          >
+            <FaSearch size={15} className={'font-bolder cursor-pointer'} />
+          </motion.span>
+        </h2>
+
+        <AnimatePresence>
+          {appSearchOpen && (
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className='flex items-center pl-3'
+            >
+              <Input
+                size='sm'
+                isClearable
+                type='text'
+                placeholder='Search'
+                value={appSearchTerm}
+                onClear={() => setAppSearchTerm('')}
+                onChange={e => setAppSearchTerm(e.target.value)}
+                classNames={{
+                  innerWrapper: 'bg-transparent',
+                  inputWrapper: [
+                    'shadow-xl',
+                    'bg-default-200/50',
+                    'dark:bg-default/60',
+                    'backdrop-blur-xl',
+                    'backdrop-saturate-200',
+                    'hover:bg-default-200/70',
+                    'dark:hover:bg-default/70',
+                    'group-data-[focused=true]:bg-default-200/50',
+                    'dark:group-data-[focused=true]:bg-default/60',
+                    '!cursor-text'
+                  ]
+                }}
+                variant='bordered'
+                className='shadow-md'
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div
+        className={`flex h-[20%] flex-wrap overflow-y-auto text-sm scrollbar-hide`}
+      >
+        {applications.length ? (
+          applications
+            .filter((app: any) =>
+              app.toLowerCase().includes(appSearchTerm.trim().toLowerCase())
+            )
+            .map((app, id) => (
+              <div key={id}>
+                {newState && (
+                  <div
+                    className='flex flex-wrap justify-center gap-4 px-5 py-4'
+                    onClick={() => {
+                      getAllApplication(app)
+                    }}
+                  >
+                    <motion.div
+                      whileHover={{ scale: 1.2 }}
+                      animate={{ x: [-100, 0], scale: 1 }}
+                      initial={{ scale: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <div className='item-center flex h-[55px] w-[55px] cursor-pointer justify-center rounded-md bg-blue-400'>
+                        <CiMemoPad
+                          className='mt-[12px]'
+                          size={30}
+                          fill='white'
+                        />
+                      </div>
+                      <span
+                        className={' mt-[10px] flex  cursor-pointer '}
+                        key={app}
+                      >
+                        {app}
+                        {selectedApp == app ? (
+                          <IoMdCheckmarkCircleOutline
+                            className="text-green-500"
+                            size={20}
+                          />
+                        ) : null}
+                      </span>
+                    </motion.div>
+                  </div>
+                )}
+              </div>
+            ))
+        ) : loading ? (
+          <Spinner />
+        ) : (
+          <div className='ml-10 mt-10 text-nowrap'>
+            No Application Available
+          </div>
+        )}
+      </div>
+
+      <div className='flex h-[5%] flex-row justify-start pl-3 pt-4'>
+        <h2 className='flex items-center gap-2 text-start text-medium'>
+          {selectedGrps.orgGrp.orgGrpName}
+          <motion.span
+            onClick={() => setOrgSearchOpen(!orgSearchOpen)}
+            initial={{
+              right: orgSearchOpen ? '0%' : '22%',
+              top: '13.6%'
+            }}
+            animate={{ right: orgSearchOpen ? '22%' : '0%' }}
+            className='cursor-pointer'
+          >
+            <FaSearch size={15} className={'font-bolder cursor-pointer'} />
+          </motion.span>
+        </h2>
+
+        <AnimatePresence>
+          {orgSearchOpen && (
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className='flex items-center pl-3'
+            >
+              <Input
+                size='sm'
+                isClearable
+                type='text'
+                placeholder='Search'
+                value={orgSearchTerm}
+                onClear={() => setOrgSearchTerm('')}
+                onChange={e => setOrgSearchTerm(e.target.value)}
+                classNames={{
+                  innerWrapper: 'bg-transparent',
+                  inputWrapper: [
+                    'shadow-xl',
+                    'bg-default-200/50',
+                    'dark:bg-default/60',
+                    'backdrop-blur-xl',
+                    'backdrop-saturate-200',
+                    'hover:bg-default-200/70',
+                    'dark:hover:bg-default/70',
+                    'group-data-[focused=true]:bg-default-200/50',
+                    'dark:group-data-[focused=true]:bg-default/60',
+                    '!cursor-text'
+                  ]
+                }}
+                variant='bordered'
+                className='shadow-md'
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div
+        className={`flex h-[20%] flex-wrap overflow-y-auto text-sm scrollbar-hide`}
+      >
+        {selectedGrps.orgGrp.org ? (
+          selectedGrps.orgGrp.org
+            ?.filter((ele: any) =>
+              ele.orgName
+                .toLowerCase()
+                .includes(orgSearchTerm.trim().toLowerCase())
+            )
+            .map((org: any, index: number) => (
+              <div
+                key={index}
+                className='flex flex-wrap justify-center gap-4 px-5 py-4'
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2 }}
+                  animate={{ x: [-100, 0], scale: 1 }}
+                  initial={{ scale: 0 }}
+                  transition={{ duration: 0.5 }}
+                  onClick={() => handleOrgSelection(org)}
+                >
+                  <div
+                    className={`${orpData.orgGrp.orgCode && orpData.orgGrp.orgCode == org.orgCode ? 'bg-blue-500/90' : ''} item-center flex h-[55px] w-[55px] cursor-pointer justify-center rounded-md bg-blue-400`}
+                  >
+                    <CiMemoPad className='mt-[12px]' size={30} fill='white' />
+                  </div>
+                  <span className={' mt-[10px] flex  cursor-pointer '}>
+                    {org.orgName}
+                    {orpData.orgGrp.orgCode == org.orgCode ? (
+                          <IoMdCheckmarkCircleOutline
+                            className="text-green-500"
+                            size={20}
+                          />
+                        ) : null}
+                  </span>
+                </motion.div>
+              </div>
+            ))
+        ) : (
+          <div className='ml-10 mt-10 text-nowrap'>
+            No Organizations Available
+          </div>
+        )}
+      </div>
+
+      <div className='flex h-[5%] flex-row justify-start pl-3 pt-4'>
+        <h2 className='flex items-center gap-2 text-start text-medium'>
+          {selectedGrps.roleGrp.roleGrpName}
+
+          <motion.span
+            onClick={() => setRoleSearchOpen(!roleSearchOpen)}
+            initial={{
+              right: roleSearchOpen ? '0%' : '22%',
+              top: '13.6%'
+            }}
+            animate={{ right: roleSearchOpen ? '22%' : '0%' }}
+            className='cursor-pointer'
+          >
+            <FaSearch size={15} className={'font-bolder cursor-pointer'} />
+          </motion.span>
+        </h2>
+
+        <AnimatePresence>
+          {roleSearchOpen && (
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className='flex items-center pl-3'
+            >
+              <Input
+                size='sm'
+                isClearable
+                type='text'
+                placeholder='Search'
+                value={roleSearchTerm}
+                onClear={() => setRoleSearchTerm('')}
+                onChange={e => setRoleSearchTerm(e.target.value)}
+                classNames={{
+                  innerWrapper: 'bg-transparent',
+                  inputWrapper: [
+                    'shadow-xl',
+                    'bg-default-200/50',
+                    'dark:bg-default/60',
+                    'backdrop-blur-xl',
+                    'backdrop-saturate-200',
+                    'hover:bg-default-200/70',
+                    'dark:hover:bg-default/70',
+                    'group-data-[focused=true]:bg-default-200/50',
+                    'dark:group-data-[focused=true]:bg-default/60',
+                    '!cursor-text'
+                  ]
+                }}
+                variant='bordered'
+                className='shadow-md'
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div
+        className={`flex h-[20%] flex-wrap overflow-y-auto text-sm scrollbar-hide`}
+      >
+        {selectedGrps.roleGrp.roles ? (
+          selectedGrps.roleGrp.roles
+            .filter((ele: any) =>
+              ele.roleName
+                .toLowerCase()
+                .includes(roleSearchTerm.trim().toLowerCase())
+            )
+            .map((roles: any, index: number) => (
+              <div
+                key={index}
+                className='flex flex-wrap justify-center gap-4 px-5 py-4'
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2 }}
+                  animate={{ x: [-100, 0], scale: 1 }}
+                  initial={{ scale: 0 }}
+                  transition={{ duration: 0.5 }}
+                  onClick={() => handleRGSelection(roles)}
+                >
+                  <div
+                    className={`${orpData.roleGrp.roleCode && orpData.roleGrp.roleCode == roles.roleCode ? 'bg-blue-500/90' : ''} item-center flex h-[55px] w-[55px] cursor-pointer justify-center rounded-md bg-blue-400`}
+                  >
+                    <CiMemoPad className='mt-[12px]' size={30} fill='white' />
+                  </div>
+                  <span className={' mt-[10px] flex  cursor-pointer '}>
+                    {roles.roleName}
+                    {orpData.roleGrp.roleCode == roles.roleCode ? (
+                          <IoMdCheckmarkCircleOutline
+                            className="text-green-500"
+                            size={20}
+                          />
+                        ) : null}
+                  </span>
+                </motion.div>
+              </div>
+            ))
+        ) : (
+          <div className='ml-10 mt-10 text-nowrap'>No Roles Available</div>
+        )}
+      </div>
+
+      <div className='flex h-[5%] flex-row justify-start pl-3 pt-4'>
+        <h2 className='flex items-center gap-2 text-start text-medium'>
+          {selectedGrps.psGrp.psGrpName}
+
+          <motion.span
+            onClick={() => setPsSearchOpen(!psSearchOpen)}
+            initial={{
+              right: psSearchOpen ? '0%' : '22%',
+              top: '13.6%'
+            }}
+            animate={{ right: psSearchOpen ? '22%' : '0%' }}
+            className='cursor-pointer'
+          >
+            <FaSearch size={15} className={'font-bolder cursor-pointer'} />
+          </motion.span>
+        </h2>
+
+        <AnimatePresence>
+          {psSearchOpen && (
+            <motion.div
+              initial={{ x: -200, opacity: 0 }}
+              animate={{ x: 0, opacity: 1 }}
+              exit={{ x: -200, opacity: 0 }}
+              transition={{ duration: 0.3 }}
+              className='flex items-center pl-3'
+            >
+              <Input
+                size='sm'
+                isClearable
+                type='text'
+                placeholder='Search'
+                value={psSearchTerm}
+                onClear={() => setPsSearchTerm('')}
+                onChange={e => setPsSearchTerm(e.target.value)}
+                classNames={{
+                  innerWrapper: 'bg-transparent',
+                  inputWrapper: [
+                    'shadow-xl',
+                    'bg-default-200/50',
+                    'dark:bg-default/60',
+                    'backdrop-blur-xl',
+                    'backdrop-saturate-200',
+                    'hover:bg-default-200/70',
+                    'dark:hover:bg-default/70',
+                    'group-data-[focused=true]:bg-default-200/50',
+                    'dark:group-data-[focused=true]:bg-default/60',
+                    '!cursor-text'
+                  ]
+                }}
+                variant='bordered'
+                className='shadow-md'
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+      <div
+        className={`flex h-[20%] flex-wrap overflow-y-auto text-sm scrollbar-hide`}
+      >
+        {selectedGrps.psGrp.ps ? (
+          selectedGrps.psGrp.ps
+            .filter((ele: any) =>
+              ele.psName
+                .toLowerCase()
+                .includes(psSearchTerm.trim().toLowerCase())
+            )
+            .map((ps: any, index: number) => (
+              <div
+                key={index}
+                className='flex flex-wrap justify-center gap-4 px-5 py-4'
+              >
+                <motion.div
+                  whileHover={{ scale: 1.2 }}
+                  animate={{ x: [-100, 0], scale: 1 }}
+                  initial={{ scale: 0 }}
+                  transition={{ duration: 0.5 }}
+                  onClick={() => handlePSGSelection(ps)}
+                >
+                  <div
+                    className={`${orpData.psGrp.psCode && orpData.psGrp.psCode == ps.psCode ? 'bg-blue-500/90' : ''} item-center flex h-[55px] w-[55px] cursor-pointer justify-center rounded-md bg-blue-400`}
+                  >
+                    <CiMemoPad className='mt-[12px]' size={30} fill='white' />
+                  </div>
+                  <span className={' mt-[10px] flex  cursor-pointer '}>
+                    {ps.psName}
+                    {orpData.psGrp.psCode == ps.psCode ? (
+                          <IoMdCheckmarkCircleOutline
+                            className="text-green-500"
+                            size={20}
+                          />
+                        ) : null}
+                  </span>
+                </motion.div>
+              </div>
+            ))
+        ) : (
+          <div className='ml-10 mt-10 text-nowrap'>
+            No Product and Service Available
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default Applist

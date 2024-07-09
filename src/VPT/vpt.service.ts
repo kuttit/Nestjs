@@ -1,3 +1,4 @@
+
 import { HttpService } from '@nestjs/axios';
 import { PfdService } from './pfd/pfd.service';
 import { Injectable, BadRequestException } from '@nestjs/common';
@@ -5,12 +6,14 @@ import axios from 'axios';
 import { PfPfdService } from './pf_pfd/pf_pfd.service';
 import { RedisService } from 'src/redisService';
 import { ZenEngine } from '@gorules/zen-engine';
+import { CommonService } from 'src/commonService';
 
 @Injectable()
 export class VptService {
   constructor(
     private readonly redisService: RedisService,
     private readonly pfdService: PfdService,
+    private readonly CommonService: CommonService,
 
     private readonly pfPfdService: PfPfdService,
   ) {}
@@ -72,6 +75,28 @@ export class VptService {
         }
       }
     } catch (error) {
+      throw error;
+    }
+  }
+
+  async handleErroLog(
+    errObj,
+    token,
+    key,
+    errorMessage,
+    statusCode,
+  ): Promise<any> {
+    try{
+
+      return await this.CommonService.commonErrorLogs(
+        errObj,
+        token,
+        key,
+        errorMessage,
+        statusCode,
+      );
+    }
+    catch(error){
       throw error;
     }
   }
@@ -156,34 +181,22 @@ export class VptService {
 
   async getApplication(tenant, appGroup): Promise<any> {
     try {
-      const res = await this.readReddis(tenant);
-      const applications = await JSON.parse(res);
-      console.log(applications, 'appllllll');
-      const response = [];
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        typeof applications === 'object'
-      ) {
-        const applicationList = Object.keys(applications[tenant][appGroup]);
-
-        if (applicationList) {
-          for (let application of applicationList) {
-            response.push(application);
-          }
+      const keys = await this.redisService.getKeys(`${tenant}:${appGroup}`);
+      let application = new Set([]);
+      if (keys && keys.length > 0) {
+        for (let i = 0; i < keys.length; i++) {
+          const artifacts = keys[i].split(':');
+          application.add(artifacts[2]);
         }
       }
-
       return {
-        data: response,
+        data: Array.from(application),
         status: 200,
       };
     } catch (error) {
       throw error;
     }
   }
-
   async createApplication(tenant, appGroup, application): Promise<any> {
     try {
       const res = await this.readReddis(tenant);
@@ -405,35 +418,26 @@ export class VptService {
 
   async deleteApplication(tenant, appGroup, application): Promise<any> {
     try {
+
       const res = await this.readReddis(tenant);
       const applications = await JSON.parse(res);
-      if (
-        applications &&
-        applications.hasOwnProperty(tenant) &&
-        applications[tenant].hasOwnProperty(appGroup) &&
-        applications[tenant][appGroup].hasOwnProperty(application) &&
-        typeof applications === 'object'
-      ) {
-        delete applications[tenant][appGroup][application];
+    
+     
+      if (applications){
         await this.delete(tenant + ':' + appGroup + ':' + application);
-        await this.writeReddis(tenant, applications);
-        let applicationList = Object.keys(applications[tenant][appGroup]);
+        const applicationList = await this.getApplication(tenant, appGroup);
+        console.log(applicationList , "req")
         return {
           status: 200,
-          data: applicationList,
+          data: applicationList.data,
           message: 'Application Deleted Successfully',
         };
-      } else {
-        return {
-          status: 400,
-          data: [],
-          message: 'Application Not Found',
-        };
+        
       }
     } catch (error) {
       return {
         status: 400,
-        data: [],
+        data: application,
         message: 'Application Not Found',
       };
     }

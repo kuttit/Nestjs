@@ -1,7 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { HttpStatus, Injectable } from '@nestjs/common';
 import { JwtServices } from 'src/jwt.services';
 import { RedisService } from 'src/redisService';
 import { CommonService } from 'src/commonService';
+import { errorObj } from '../Interfaces/errorObj.interface';
 
 @Injectable()
 export class TgSecurityCheckService {
@@ -179,7 +180,22 @@ export class TgSecurityCheckService {
   }
 
   async setSaveHandlerData(key, value, path) {
-    value = JSON.stringify(value);
+    var temp = structuredClone(value);
+    var obj = {};
+    if (Array.isArray(temp) || typeof temp === 'string') {
+      obj = value;
+    } else {
+      Object.keys(temp).forEach((item) => {
+        if (
+          temp[item] !== '' &&
+          temp[item] !== undefined &&
+          temp[item] !== null
+        ) {
+          obj[item] = temp[item];
+        }
+      });
+    }
+    value = JSON.stringify(obj);
     await this.redisService.setJsonData(key, value, path);
   }
 
@@ -227,16 +243,32 @@ export class TgSecurityCheckService {
       keyParts[0],
       decodedToken,
     );
+    if(!orpSecurity){
+      let errorObj: errorObj = {
+        tname: 'TG',
+        errGrp:'Technical',
+        fabric:'SF',
+        errType:'Fatal',
+        errCode:'TG011',
+      }
+      const errorMessage = 'SF key is not valid';
+      const statusCode = HttpStatus.INTERNAL_SERVER_ERROR;
+      let errObj = await this.tgCommonSevice.commonErrorLogs(
+        errorObj,
+        token,
+        keyParts[0],
+        errorMessage,
+        statusCode,
+      );
+      throw errObj;
+    }
     // return orpSecurity
     orpSecurity= orpSecurity[0]
-    if (!orpSecurity) {
-      return 'SF JSON not found';
-    }
 
    let allowedScreensArray: any[] = [];
 
     // orpSecurity.forEach((orpSecurity) => {
-      if (orpSecurity.uf) {
+      if (orpSecurity.uf.length > 0) {
         orpSecurity.uf.forEach((uf) => {
           if (
             uf.resourceType === 'Page' &&
@@ -247,86 +279,90 @@ export class TgSecurityCheckService {
             
             var page = uf.resource.split(':')[3];
             var Components = [];
-
-            uf.componentDetails.forEach((componentDetails) => {
-              if (
-                uf.actionAllowed.selectedValue.includes('*') ||
-                uf.actionAllowed.selectedValue.includes(componentDetails.resource)
-              ) {
-                console.log(2);
+            if(uf.componentDetails.length > 0){
+              uf.componentDetails.forEach((componentDetails) => {
                 if (
-                  componentDetails.resourceType === 'Component' &&
-                  componentDetails.SIFlag.selectedValue === 'A'
+                  uf.actionAllowed.selectedValue.includes('*') ||
+                  uf.actionAllowed.selectedValue.includes(componentDetails.resource)
                 ) {
-                  console.log(3);
-                  var componentName = '';
-                  var control = [];
-                  componentName = componentDetails.resource;
-                  componentDetails.controlDetails.forEach((controlDetails) => {
-                    if (
-                      componentDetails.actionAllowed.selectedValue.includes('*') ||
-                      componentDetails.actionAllowed.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      console.log(4);
-                      if (
-                        controlDetails.resourceType === 'controls' &&
-                        ((controlDetails.SIFlag.selectedValue === 'A' &&
-                          controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                          (componentDetails.SIFlag.selectedValue === 'E' &&
-                            componentDetails.actionDenied.selectedValue.includes('N')))
-                      ) {
-                        console.log(controlDetails.resource, 'controlDetails');
-                        
-                        control.push(controlDetails.resource);
-                      }
+                  console.log(2);
+                  if (
+                    componentDetails.resourceType === 'Component' &&
+                    componentDetails.SIFlag.selectedValue === 'A'
+                  ) {
+                    console.log(3);
+                    var componentName = '';
+                    var control = [];
+                    componentName = componentDetails.resource;
+                    if(componentDetails.controlDetails.length > 0){
+                      componentDetails.controlDetails.forEach((controlDetails) => {
+                        if (
+                          componentDetails.actionAllowed.selectedValue.includes('*') ||
+                          componentDetails.actionAllowed.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          console.log(4);
+                          if (
+                            controlDetails.resourceType === 'controls' &&
+                            ((controlDetails.SIFlag.selectedValue === 'A' &&
+                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
+                              (componentDetails.SIFlag.selectedValue === 'E' &&
+                                componentDetails.actionDenied.selectedValue.includes('N')))
+                          ) {
+                            console.log(controlDetails.resource, 'controlDetails');
+                            
+                            control.push(controlDetails.resource);
+                          }
+                        }
+                      });
                     }
-                  });
-
-                  Components.push({
-                    componentName,
-                    control,
-                  });
-                  // console.log(Components);
-                } else if (
-                  componentDetails.resourceType === 'Component' &&
-                  componentDetails.SIFlag.selectedValue === 'E'
-                ) {
-                  var componentName = '';
-                  var control = [];
-                  componentName = componentDetails.resource;
-                  componentDetails.controlDetails.forEach((controlDetails) => {
-                    if (
-                      componentDetails.actionDenied.selectedValue.includes('*') ||
-                      componentDetails.actionDenied.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      control.push();
-                    } else if (
-                      !componentDetails.actionDenied.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      if (
-                        controlDetails.resourceType === 'controls' &&
-                        ((controlDetails.SIFlag.selectedValue === 'A' &&
-                          controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                          (componentDetails.SIFlag.selectedValue === 'E' &&
-                            componentDetails.actionDenied.selectedValue.includes('N')))
-                      ) {
-                        control.push(controlDetails.resource);
-                      }
+                    Components.push({
+                      componentName,
+                      control,
+                    });
+                    // console.log(Components);
+                  } else if (
+                    componentDetails.resourceType === 'Component' &&
+                    componentDetails.SIFlag.selectedValue === 'E'
+                  ) {
+                    var componentName = '';
+                    var control = [];
+                    componentName = componentDetails.resource;
+                    if(componentDetails.controlDetails.length > 0){
+                      componentDetails.controlDetails.forEach((controlDetails) => {
+                        if (
+                          componentDetails.actionDenied.selectedValue.includes('*') ||
+                          componentDetails.actionDenied.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          control.push();
+                        } else if (
+                          !componentDetails.actionDenied.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          if (
+                            controlDetails.resourceType === 'controls' &&
+                            ((controlDetails.SIFlag.selectedValue === 'A' &&
+                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
+                              (componentDetails.SIFlag.selectedValue === 'E' &&
+                                componentDetails.actionDenied.selectedValue.includes('N')))
+                          ) {
+                            control.push(controlDetails.resource);
+                          }
+                        }
+                      });
                     }
-                  });
-                  Components.push({
-                    componentName,
-                    control,
-                  });
+                    Components.push({
+                      componentName,
+                      control,
+                    });
+                  }
                 }
-              }
-            });
+              });
+            }
             allowedScreensArray.push({
               page: page,
               Components: Components,
@@ -339,82 +375,87 @@ export class TgSecurityCheckService {
             var page = uf.resource.split(':')[4];
             var Components = [];
 
-            uf.componentDetails.forEach((componentDetails) => {
-              if (
-                uf.actionDenied.selectedValue.includes('*') ||
-                uf.actionDenied.selectedValue.includes(componentDetails.resource)
-              ) {
-                Components.push();
-              } else if (!uf.actionDenied.selectedValue.includes(componentDetails.resource)) {
+            if(uf.componentDetails.length > 0){
+              uf.componentDetails.forEach((componentDetails) => {
                 if (
-                  componentDetails.resourceType === 'Component' &&
-                  componentDetails.SIFlag.selectedValue === 'A'
+                  uf.actionDenied.selectedValue.includes('*') ||
+                  uf.actionDenied.selectedValue.includes(componentDetails.resource)
                 ) {
-                  var componentName = '';
-                  var control = [];
-                  componentName = componentDetails.resource;
-                  componentDetails.controlDetails.forEach((controlDetails) => {
-                    if (
-                      componentDetails.actionAllowed.selectedValue.includes('*') ||
-                      componentDetails.actionAllowed.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      if (
-                        controlDetails.resourceType === 'controls' &&
-                        ((controlDetails.SIFlag.selectedValue === 'A' &&
-                          controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                          (componentDetails.SIFlag.selectedValue === 'E' &&
-                            componentDetails.actionDenied.selectedValue.includes('N')))
-                      ) {
-                        control.push(controlDetails.resource);
-                      }
+                  Components.push();
+                } else if (!uf.actionDenied.selectedValue.includes(componentDetails.resource)) {
+                  if (
+                    componentDetails.resourceType === 'Component' &&
+                    componentDetails.SIFlag.selectedValue === 'A'
+                  ) {
+                    var componentName = '';
+                    var control = [];
+                    componentName = componentDetails.resource;
+                    if(componentDetails.controlDetails.length > 0){
+                      componentDetails.controlDetails.forEach((controlDetails) => {
+                        if (
+                          componentDetails.actionAllowed.selectedValue.includes('*') ||
+                          componentDetails.actionAllowed.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          if (
+                            controlDetails.resourceType === 'controls' &&
+                            ((controlDetails.SIFlag.selectedValue === 'A' &&
+                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
+                              (componentDetails.SIFlag.selectedValue === 'E' &&
+                                componentDetails.actionDenied.selectedValue.includes('N')))
+                          ) {
+                            control.push(controlDetails.resource);
+                          }
+                        }
+                      });
                     }
-                  });
-
-                  Components.push({
-                    componentName,
-                    control,
-                  });
-                  // console.log(Components);
-                } else if (
-                  componentDetails.resourceType === 'Component' &&
-                  componentDetails.SIFlag.selectedValue === 'E'
-                ) {
-                  var componentName = '';
-                  var control = [];
-                  componentName = componentDetails.resource;
-                  componentDetails.controlDetails.forEach((controlDetails) => {
-                    if (
-                      componentDetails.actionDenied.selectedValue.includes('*') ||
-                      componentDetails.actionDenied.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      control.push();
-                    } else if (
-                      !componentDetails.actionDenied.selectedValue.includes(
-                        controlDetails.resource,
-                      )
-                    ) {
-                      if (
-                        controlDetails.resourceType === 'controls' &&
-                        ((controlDetails.SIFlag.selectedValue === 'A' &&
-                          controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                          (componentDetails.SIFlag.selectedValue === 'E' &&
-                            componentDetails.actionDenied.selectedValue.includes('N')))
-                      ) {
-                        control.push(controlDetails.resource);
-                      }
+                    Components.push({
+                      componentName,
+                      control,
+                    });
+                    // console.log(Components);
+                  } else if (
+                    componentDetails.resourceType === 'Component' &&
+                    componentDetails.SIFlag.selectedValue === 'E'
+                  ) {
+                    var componentName = '';
+                    var control = [];
+                    componentName = componentDetails.resource;
+                    if(componentDetails.controlDetails.length > 0){
+                      componentDetails.controlDetails.forEach((controlDetails) => {
+                        if (
+                          componentDetails.actionDenied.selectedValue.includes('*') ||
+                          componentDetails.actionDenied.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          control.push();
+                        } else if (
+                          !componentDetails.actionDenied.selectedValue.includes(
+                            controlDetails.resource,
+                          )
+                        ) {
+                          if (
+                            controlDetails.resourceType === 'controls' &&
+                            ((controlDetails.SIFlag.selectedValue === 'A' &&
+                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
+                              (componentDetails.SIFlag.selectedValue === 'E' &&
+                                componentDetails.actionDenied.selectedValue.includes('N')))
+                          ) {
+                            control.push(controlDetails.resource);
+                          }
+                        }
+                      });
                     }
-                  });
-                  Components.push({
-                    componentName,
-                    control,
-                  });
+                    Components.push({
+                      componentName,
+                      control,
+                    });
+                  }
                 }
-              }
-            });
+              });
+            }
             allowedScreensArray.push({
               page: page,
               Components: Components,
@@ -426,22 +467,5 @@ export class TgSecurityCheckService {
 
     return allowedScreensArray;
 
-    var filteredScreen = [];
-
-    if (allowedScreensArray.length) {
-      console.log(genScreens);
-
-      genScreens.forEach((element) => {
-        allowedScreensArray.forEach((allowedScreens) => {
-          if (allowedScreens.page.toLowerCase() === element.toLowerCase()) {
-            filteredScreen.push(allowedScreens);
-          }
-        });
-      });
-
-      return filteredScreen;
-    } else {
-      return [];
-    }
   }
 }

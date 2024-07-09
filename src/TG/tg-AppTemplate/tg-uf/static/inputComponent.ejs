@@ -1,0 +1,49 @@
+'use client'
+import { Input, InputProps } from '@nextui-org/react'
+
+const InputComponent: React.FC<InputProps> = ({
+  isDisabled,
+  isReadOnly,
+  isRequired,
+  size,
+  label,
+  labelPlacement,
+  value,
+  defaultValue,
+  placeholder,
+  isInvalid,
+  className,
+  onChange,
+  isClearable,
+  onClear,
+  onValueChange,
+  children,
+  endContent,
+  type
+}) => {
+  return (
+    <Input
+      isDisabled={isDisabled}
+      size={size}
+      label={label}
+      isReadOnly={isReadOnly}
+      isRequired={isRequired}
+      labelPlacement={labelPlacement}
+      value={value}
+      defaultValue={defaultValue}
+      placeholder={placeholder}
+      isInvalid={isInvalid}
+      className={className}
+      onChange={onChange}
+      isClearable={isClearable}
+      onClear={onClear}
+      onValueChange={onValueChange}
+      endContent={endContent}
+      type={type}
+    >
+        {children}
+    </Input>
+    
+  )
+}
+export default InputComponent

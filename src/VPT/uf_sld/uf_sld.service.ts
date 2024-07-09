@@ -100,30 +100,46 @@ export class UfSldService {
         nodeEdges: JSON.parse(result[1]),
         nodeProperty: JSON.parse(result[2]),
       };
+
+      let node = res['nodes'].map((node) => {
+        if (
+          res.hasOwnProperty('nodeProperty') &&
+          res['nodeProperty'].hasOwnProperty(node.id)
+        ) {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              label: res['nodeProperty'][node.id].nodeName,
+              nodeProperty: res['nodeProperty'][node.id],
+            },
+          };
+        } else {
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              nodeProperty: {},
+            },
+          };
+        }
+      });
+
+      res = {
+        ...res,
+        nodes: node,
+      };
+
       console.log('🚀 ~ AppService ~ res:', res);
       return {
-        status: 200,
         data: res,
+        status: 200,
       };
     } catch (error) {
       throw error;
     }
 
-    // try {
-    //   const res = await this.readReddis(tenant);
-    //   const application = await JSON.parse(res);
-    //   console.log('🚀 ~ AppService ~ application:', application);
-    //   let applicationDetails = {};
-
-    //   applicationDetails =
-    //     application[tenant][appGroup][fabrics][applicationName][processFlow][
-    //       version
-    //     ];
-
-    //   return { workflow: { ...applicationDetails } };
-    // } catch (error) {
-    //   throw error;
-    // }
+ 
   }
 
   async deleteApplication(
@@ -335,7 +351,12 @@ export class UfSldService {
 
       result = {
         nodes: flowNodes,
-        nodeProperty: flowNodesProperty,
+        nodeProperty:flowNodes.reduce((acc, node) => {
+          if (Object.keys(node.data.nodeProperty).length > 0) {
+            acc[node.id] = node.data.nodeProperty;
+          }
+          return acc;
+        }, {}),
         nodeEdges: flowNodeEdges,
       };
 

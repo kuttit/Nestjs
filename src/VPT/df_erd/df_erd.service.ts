@@ -500,7 +500,7 @@ export class DfErdService {
                 nodeName: node.data.label,
                 entities: {
                   Entity: node.data.label,
-                  attributes: node.defaults.attributesDefaults.attributes,
+                  attributes: [],
                   methods: [],
                   relationships: [],
                 },
@@ -524,18 +524,15 @@ export class DfErdService {
             const sourceNode = nodes.find((node) => node.id === source);
             const targetNode = nodes.find((node) => node.id === target);
 
-            if (!resultObj[source]) {
-              resultObj[source] = {
-                nodeName: sourceNode.data.label,
-                entities: {
-                  Entity: sourceNode.data.label,
-                  attributes:
-                    sourceNode?.defaults.attributesDefaults.attributes || [],
-                  methods: [],
-                  relationships: [],
-                },
-              };
-            }
+            resultObj[source] = {
+              ...resultObj[source],
+
+              entities: {
+                ...resultObj[source]?.entities,
+                relationships: [],
+              },
+            };
+
             let attributeSource = sourceHandle.split('-')[0];
             let attributeTarget = targetHandle.split('-')[0];
             const relationship = {
@@ -561,25 +558,6 @@ export class DfErdService {
 
       const processFlowResult = processFlow();
       console.log(processFlowResult, 'processFlowResult');
-
-      // const copyOfprocessFlowResult = structuredClone(processFlowResult);
-      // let entityJsonNames = [];
-      // Object.values(processFlowResult).map((entity) => {
-      //   if (!entityJsonNames.includes(entity.Entity)) {
-      //     entityJsonNames.push(entity.Entity);
-      //   }
-      // });
-
-      // nodes.map((node) => {
-      //   if (!entityJsonNames.includes(node.data.label)) {
-      //     copyOfprocessFlowResult[node.id] = {
-      //       Entity: node.data.label,
-      //       attributes: node.defaults.attributesDefaults.attributes,
-      //       methods: [],
-      //       relationships: [],
-      //     };
-      //   }
-      // });
 
       return processFlowResult;
     } catch (error) {

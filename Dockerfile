@@ -1,18 +1,9 @@
-FROM node:20 AS build
-
-# Upgrade npm
-RUN npm i -g npm
-
+FROM node:20-alpine AS build
+RUN npm i -g pnpm
 WORKDIR /usr/src/app
-
 COPY package*.json pnpm-lock.yaml ./
-
-RUN npm install
-
+RUN pnpm install
 COPY . .
-
-RUN npm run build
-
+RUN pnpm build
 EXPOSE 3002
-
-CMD ["npm", "start"]
+CMD ["pnpm","start:dev"]

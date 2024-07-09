@@ -232,35 +232,36 @@ export class DfdService {
     try {
       let updateResult = {};
       let result = {};
-      if (fabrics == 'PF') {
+      console.log("flow",req.flow , "flow")
+     
+   
+
+
         const nodes = structuredClone(req.flow.nodes);
         const edges = structuredClone(req.flow.nodeEdges);
-
         result = {
           nodes: nodes,
           nodeEdges: edges,
-          nodeProperty: {
-            ...req.flow.nodeProperty,
-          },
+          nodeProperty: nodes.reduce((acc, node) => {
+            if (Object.keys(node.data.nodeProperty).length > 0) {
+              acc[node.id] = node.data.nodeProperty;
+            }
+            return acc;
+          }, {}),
         };
-
         updateResult = {
           nodes: nodes,
           nodeEdges: edges,
-          nodeProperty: {
-            ...req.flow.nodeProperty,
-          },
+          nodeProperty: nodes.reduce((acc, node) => {
+            if (Object.keys(node.data.nodeProperty).length > 0) {
+              acc[node.id] = node.data.nodeProperty;
+            }
+            return acc;
+          }, {}),
         };
-      }
 
-      if (fabrics == 'DF') {
-        result = {
-          ...req.flow,
-        };
-        updateResult = {
-          ...req.flow,
-        };
-      }
+
+  
 
       if (type === 'create') {
         const res = await this.readReddis(source);

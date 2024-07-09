@@ -1,3 +1,5 @@
+
+
 import { PfdService } from './pfd/pfd.service';
 import { Controller, Delete } from '@nestjs/common';
 import {
@@ -17,6 +19,7 @@ export class VptController {
   constructor(
     private readonly vptService: VptService,
     pfdService: PfdService,
+
   ) {}
 
   @Get('domainList')
@@ -179,6 +182,22 @@ export class VptController {
   @Post('customCodeObjects')
   async getPFobjects(@Body() input): Promise<any> {
     return await this.vptService.getPF(input);
+  }
+
+  
+  @Post('errorlog')
+  async handleErrorlog(
+    @Body() req: any,
+    @Query(new ValidationPipe({ transform: true })) query: any,
+  ): Promise<any> {
+    const { errObj, token, key, errorMessage, statusCode } = req;
+    return await this.vptService.handleErroLog(
+      errObj,
+      token,
+      key,
+      errorMessage,
+      statusCode,
+    )
   }
 
   @Get(`getNodeList`)

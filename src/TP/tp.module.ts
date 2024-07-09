@@ -4,9 +4,13 @@ import { TpController } from './tp.controller';
 import { RedisService } from 'src/redisService';
 import { JwtService } from '@nestjs/jwt';
 import { CommonService } from 'src/commonService';
+import { AuthController } from './auth/auth.controller';
+import { AuthService } from './auth/auth.service';
+import { AuthModule } from './auth/auth.module';
 
 @Module({
-  providers: [TpService, RedisService, JwtService, CommonService],
-  controllers: [TpController],
+  imports: [AuthModule],
+  providers: [TpService, RedisService, JwtService, CommonService, AuthService],
+  controllers: [TpController, AuthController],
 })
 export class TpModule {}

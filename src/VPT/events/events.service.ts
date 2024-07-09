@@ -4,6 +4,8 @@ import { RedisService } from 'src/redisService';
 @Injectable()
 export class EventsService {
   constructor(private readonly redisService: RedisService) {}
+ 
+
 
   async getEvents(
     tenant,
@@ -124,10 +126,51 @@ export class EventsService {
         nodeEdges: JSON.parse(result[1]),
         nodeProperty: JSON.parse(result[2]),
       };
+
+      
+    let node = res['nodes'].map((node) => {
+      if (
+        res.hasOwnProperty('nodeProperty') &&
+        res['nodeProperty'].hasOwnProperty(node.id)
+      ) {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            label: res['nodeProperty'][node.id].nodeName,
+            nodeProperty: res['nodeProperty'][node.id],
+          },
+        };
+      } else {
+        return {
+          ...node,
+          data: {
+            ...node.data,
+            nodeProperty: {},
+          },
+        };
+      }
+    });
+
+    res = {
+      ...res,
+      nodes: node,
+    };
+    
       return {
         status: 200,
         data: res,
       };
+
+
+   
+
+
+
+
+
+
+
     } catch (err) {
       console.log(err);
     }
@@ -218,10 +261,19 @@ export class EventsService {
 
       const key = `${tenant}:${appGroup}:${app}:${fabrics}:${artifact}:${version}:events`;
       const type = resquestBody.type;
+      console.log(resquestBody ,"dsb", resquestBody.data.nodes,"fds")
+
+      const nodes = resquestBody.data.nodes;
 
       let eventSummary = this.convertToNewFormat(data.nodes) || {};
       data = {
         ...data,
+        nodeProperty:nodes &&  nodes.reduce((acc, node) => {
+          if (node.data.nodeProperty && Object.keys(node.data.nodeProperty).length > 0) {
+            acc[node.id] = node.data.nodeProperty;
+          }
+          return acc;
+        }, {}),
         eventSummary: eventSummary,
       };
       let newEventsVersion = 'v1';

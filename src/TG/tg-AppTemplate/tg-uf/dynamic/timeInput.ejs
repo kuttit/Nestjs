@@ -1,0 +1,93 @@
+'use client'
+import React, { useState }  from 'react'
+import { TimeInputComponent } from '@/app/components/timeInput'
+<%_ for(let i=0;i<data.props.length;i++){ _%>
+<%_ if(data.props[i].name === "defaultValue" && data.props[i].value !== ''){ _%>
+import { Time } from "@internationalized/date";
+<%_ } _%>
+<%_ } _%>
+
+const TimeInput<%=data.label %> = ({setUser}:any) => {
+
+  const [time, setTime] = useState();
+  const handleChange=(newTime:any)=>{
+    setTime(newTime);
+    setUser((prev:any)=>({...prev,TimeInput<%=data.label %>:`${newTime.hour}:${newTime.minute}`}))
+    }
+
+  
+
+  return (
+    <%_ let height = (relation.height/data2.height)*100  _%>  
+    <%_ let width = (relation.width/data2.width)*100  _%>
+    <%_ let left = (relation.position.x/data2.width)*100  _%>
+    <%_ let top = (relation.position.y/data2.height)*100  _%>
+    <%_ let mdHeight = height - (height*0.1)  _%>  
+    <%_ let mdWidth = width - (width*0.1)  _%>
+    <%_ let mdLeft = left - (left*0.1)  _%>
+    <%_ let mdTop = top - (top*0.1)  _%>
+    <%_ let smHeight = mdHeight - (mdHeight*0.1)  _%>  
+    <%_ let smWidth = mdWidth - (mdWidth*0.1)  _%>
+    <%_ let smLeft = mdLeft - (mdLeft*0.1)  _%>
+    <%_ let smTop = mdTop - (mdTop*0.1)  _%>
+    <%_ let xlHeight = height + (height*0.1)  _%>  
+    <%_ let xlWidth = width + (width*0.1)  _%>
+    <%_ let xlLeft = left + (left*0.1)  _%>
+    <%_ let xlTop = top + (top*0.1)  _%>
+    <div className="container">
+      <TimeInputComponent
+      className='absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%]  
+      sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+      md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%]  
+      xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] '
+        <%_ for(let i=0;i<data.props.length;i++) { _%>
+        <%_ if(data.props[i].name === "isRequired" && data.props[i].value === "true"){ _%>
+        isRequired
+        <%_ } _%>
+        <%_ if(data.props[i].name === "isDisabled"&& data.props[i].value === "true"){ _%>
+        isDisabled
+        <%_ } _%>
+        <%_ if(data.props[i].name === "isReadOnly" && data.props[i].value === "true"){ _%>
+        isReadOnly
+        <%_ } _%>
+        <%_ if(data.props[i].name === "labelPlacement" && data.props[i].value === "true"){ _%>
+        labelPlacement='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ if(data.props[i].name === "granularity" && data.props[i].value !== ""){ _%>
+        granularity='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ if(data.props[i].name === "placeholderValue" && data.props[i].value !=="" ){ _%>
+        placeholderValue={<%= data.props[i].value %>}
+        <%_ } _%>
+        <%_ if(data.props[i].name === "hideTimeZone" && data.props[i].value ==="true" ){ _%>
+        hideTimeZone
+        <%_ } _%>
+        <%_ if(data.props[i].name === "hourCycle" && data.props[i].value !=="" ){ _%>
+        hourCycle={<%= data.props[i].value %>}
+        <%_ } _%>
+        <%_ if(data.props[i].name === "label" && data.props[i].value !=="" ){ _%>
+        label='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ if(data.props[i].name === "name" && data.props[i].value !=="" ){ _%>
+        name='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ if(data.props[i].name === "value" && data.props[i].value !=="" ){ _%>
+        value='<%= data.props[i].value %>'
+        <%_ } _%>
+        <%_ if(data.props[i].name === "defaultValue" && data.props[i].value !== ''){ _%>
+        defaultValue={<%= data.props[i].value %>}
+        <%_ } _%>
+        <%_ if(data.props[i].name === "isInvalid" && data.props[i].value === "true"){ _%>
+        isInvalid={<%= data.props[i].value %>}
+        <%_ } _%>
+        <%_ } _%>
+        onChange= {handleChange}
+      />
+    </div>
+  
+  )
+}
+export default TimeInput<%=data.label %>
+
+
+
