@@ -56,7 +56,7 @@ export class TeCommonService {
                     if (hurlchk.nodeType == 'humantasknode') {
     
                       if (!hurlchk.execution) {
-                       // console.log("execution URL does not exist");
+                       
                         var errobj = {}
                         errobj['nodeName'] = fdjson[z].nodeName;
                         errobj['error'] = 'execution URL does not exist'
@@ -114,7 +114,7 @@ export class TeCommonService {
                     if (hurlchk.nodeType == 'apinode') {
                       // var aurlchk = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty','.'+fdjson[z].nodeId))
                       if (!hurlchk.execution) {
-                       // console.log("execution URL does not exist");
+                       
                         var errobj = {}
                         errobj['nodeName'] = fdjson[z].nodeName;
                         errobj['warning'] = 'execution URL does not exist'
@@ -423,7 +423,7 @@ export class TeCommonService {
          decreq = JSON.parse(await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.' + pfjson.nodeId + '.data.pro.request..' + greq[g].field))
          gparamreq[greq[g].field] = decreq
        }
-    console.log(gparamreq)
+  
      var goruleres = await this.goruleEngine.goRule((rule), gparamreq)
      return (goruleres.result.output)
    }
@@ -475,7 +475,7 @@ export class TeCommonService {
     //return mappedval;
     return { "MapperResult": mappedval }
   } catch (error) {
-    console.log(error);
+ 
     throw error
   }
   }

@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext,Injectable } from "@nestjs/common";
+import { CanActivate, ExecutionContext,Injectable, Logger } from "@nestjs/common";
 import { JwtService } from '@nestjs/jwt';
 import { CommonService } from "src/commonService";
 
@@ -20,7 +20,7 @@ export class AuthGuard implements CanActivate {
  var token:any = this.jwtService.decode(btoken,{ json: true }) ;
 
  var sjsoncheck = await this.commonService.getSecurityJson(request.body.sfkey,token)
- console.log('AuthGuard',sjsoncheck);
+ Logger.log('AuthGuard',sjsoncheck);
   if(Array.isArray(sjsoncheck)){
     if(sjsoncheck.length > 0){
       return true

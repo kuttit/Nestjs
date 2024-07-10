@@ -5,27 +5,43 @@ import { NodeExecutionService } from './nodeExecService';
 import { TeCommonService } from './teCommonService';
 import { AuthGuard } from './Guard/auth.guard';
 import { SavehandlerService } from './savehandlerService';
+import { Process, Processor } from '@nestjs/bull';
+
+import { Input } from './Dto/input';
+import { QueueConsumer } from './queueConsumer';
+import Bull from 'bull';
+const  Xid = require('xid-js');
 
 @UseGuards(AuthGuard)
+@Processor('pfPaymentProcess')
 @Controller('pe')
 export class TeController {
   constructor(private readonly appService: TeService, private readonly debugservice: DebugService, 
   private readonly nodeExecService:NodeExecutionService, private readonly tecommonService:TeCommonService,
-  private readonly savehandlerService:SavehandlerService) {}
+  private readonly savehandlerService:SavehandlerService, private readonly queueConsumer:QueueConsumer) {}
   
   private readonly logger = new Logger(TeController.name);
 
 
 //Execution
 
-  // Processflow Execution   
+  // Processflow Execution 
+  @Process()  
   @Post('peStream')
-   async getPeStream(@Body() input:{sfkey:string,key:string,mode:string,sflag?:string} , @Headers('Authorization') auth:any){       
+   //async getPeStream(@Body() input:{sfkey:string,key:string,mode:string,sflag?:string,queuename?:any} , @Headers('Authorization') auth:any){
+    async getPeStream(@Body() input:Input , @Headers('Authorization') auth:any){       
     var token = auth.split(' ')[1];  
      
    var inputValidate = await this.tecommonService.commonReturn(input,'peStream')
-    if(inputValidate == undefined){
-    return await this.appService.getTeStream(input.sfkey,input.key,token,input.mode,input.sflag);
+   if(inputValidate == undefined){
+      
+      input.token = token
+      input.upId =  Xid.next() 
+      
+     var result:any = await this.queueConsumer.generateQueue(input.name,input)
+      
+   if(result.status == 200)
+    return await this.appService.getTeStream(input.sfkey,input.key,token,input.mode,input.sflag,input.name);
    }else{
     return inputValidate
    }
@@ -93,7 +109,7 @@ export class TeController {
   async getdebugProcess(@Body() input, @Headers('Authorization') auth:any): Promise<any> {        
       var token = auth.split(' ')[1];   
        var inputValidate = await this.tecommonService.commonReturn(input,'debugNode')
-       console.log(inputValidate);
+      
        if(inputValidate == undefined){
        
         

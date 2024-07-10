@@ -36,7 +36,7 @@ export class NodeExecutionService {
     async nodeExecution(sfkey,keywithUPid,nodeId,nodeName,nodeType,mode,token){ 
       this.logger.log("Node level execution Started....")     
         //To split UPId from key to pass param in getSecurityJson
-       // console.log(keywithUPid.split(':',7));
+     
         var key = keywithUPid.split(':',6).join(':')  
         var upId = keywithUPid.split(':',7).join(':').split(':').pop()    
         var pfjson = {

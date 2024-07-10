@@ -5,6 +5,9 @@ import { TeCommonService } from './teCommonService';
 import axios from 'axios';
 import { JwtService } from '@nestjs/jwt';
 import { CommonService } from 'src/commonService';
+import { QueueConsumer } from './queueConsumer';
+import { Input } from './Dto/input';
+import Bull from 'bull';
 
 
 
@@ -28,68 +31,80 @@ export class TeService {
     private readonly commonService: CommonService,
     private readonly  redisService: RedisService,
     private readonly jwtService: JwtService,
+    private readonly queueConsumer: QueueConsumer
   ) {}
   private readonly logger = new Logger(TeService.name);
   
-  async getTeStream(sfkey,key,token,mode,sflag) {
+  async getTeStream(sfkey,key,token,mode,sflag,queueName) {
     this.logger.log("PE Stream Started")
     try {
       //Unique Process Id created for every execution
 
-      var upId = Xid.next()   
-      var pKey, pId, pToken,pMode
+     // var upId = Xid.next()   
+    //  var pKey, pId, pToken,pMode
 
-      const PECredentials= {
-        sessionInfo:token,     
-        processInfo: {
-          key: key,
-          pId: upId,
-          mode:mode
-        }
-      }
-      await this.redisService.setStreamData('TEStream', 'TEField', JSON.stringify(PECredentials))
-      var grpInfo = await this.redisService.getInfoGrp('TEStream')
-      if(grpInfo.length == 0){
-        await this.redisService.createConsumerGroup('TEStream','TEGroup')
-      }else if(!grpInfo[0].includes('TEGroup')){
-        await this.redisService.createConsumerGroup('TEStream','TEGroup')    
-      } 
-        let msg1:any = await this.redisService.readConsumerGroup('TEStream','TEGroup','Consumer1');
-        if(msg1.length >0){
-          for(var s=0;s<msg1.length;s++){
-            var msgid = msg1[s].msgid;
-            var data = msg1[s].data     
+      
+      var input: Input = new Input();    
 
-            if(data.length > 0 && data[1] != null){
-              pToken = JSON.parse(data[1]).sessionInfo 
-              pKey = JSON.parse(data[1]).processInfo.key
-              pId = JSON.parse(data[1]).processInfo.pId
-              pMode = JSON.parse(data[1]).processInfo.mode
-            }   
-          }
-        }
+      // const PECredentials= {
+      //   sessionInfo:token,     
+      //   processInfo: {
+      //     key: key,
+      //     pId: input.upId,
+      //     mode:mode
+      //   }
+      // }
+
+    // this.queueConsumer.generateQueue('PF',input)   
+     const queuedata: any = await this.queueConsumer.getAllJobsFromQueue(queueName);
+    
+      var jobdata = queuedata[0].data.input;
+     
+
+      // await this.redisService.setStreamData('TEStream', 'TEField', JSON.stringify(PECredentials))
+      // var grpInfo = await this.redisService.getInfoGrp('TEStream')
+      // if(grpInfo.length == 0){
+      //   await this.redisService.createConsumerGroup('TEStream','TEGroup')
+      // }else if(!grpInfo[0].includes('TEGroup')){
+      //   await this.redisService.createConsumerGroup('TEStream','TEGroup')    
+      // } 
+      //   let msg1:any = await this.redisService.readConsumerGroup('TEStream','TEGroup','Consumer1');
+      //   if(msg1.length >0){
+      //     for(var s=0;s<msg1.length;s++){
+      //       var msgid = msg1[s].msgid;
+      //       var data = msg1[s].data     
+
+      //       if(data.length > 0 && data[1] != null){
+      //         pToken = JSON.parse(data[1]).sessionInfo 
+      //         pKey = JSON.parse(data[1]).processInfo.key
+      //         pId = JSON.parse(data[1]).processInfo.pId
+      //         pMode = JSON.parse(data[1]).processInfo.mode
+      //       }   
+      //     }
+      //   }
               
-        var artifact = pKey.split(':')[4]
+        var artifact = jobdata.key.split(':')[4]
        
         if(artifact == 'SSH'){         
-          var sreq = JSON.parse(await this.redisService.getJsonData(key+'nodeProperty')) 
+          var sreq = JSON.parse(await this.redisService.getJsonData(jobdata.key+'nodeProperty')) 
           if(sreq != null){           
             var robj = {}
-            robj['key'] = pKey
-            robj['upId'] = pId
+            robj['key'] = jobdata.key
+            robj['upId'] = jobdata.upId
             robj['nodeId'] = sreq.nodeId
             robj['nodeName'] = sreq.nodeName         
-            robj['mode'] = pMode
+            robj['mode'] = jobdata.mode
             return await this.commonService.responseData(201,robj)
           }
         }
         else{
-        var result:any = await this.getProcess(sfkey,pKey,pId,pToken,pMode,sflag)
+        var result:any = await this.getProcess(jobdata.sfkey,jobdata.key,jobdata.upId,jobdata.token,jobdata.mode,sflag)
 
         if(result == 'Success'){
-          await this.redisService.ackMessage('TEStream', 'TEGroup', msgid);
+         // await this.redisService.ackMessage('TEStream', 'TEGroup', msgid);
           this.logger.log("TE Stream completed")
-          return await this.commonService.responseData(201,key+upId)
+          await this.queueConsumer.completeJobs(jobdata[0]);
+          return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }
         else if(result.status == 200){
           this.logger.log("TE Stream completed")
@@ -99,8 +114,7 @@ export class TeService {
           return result
         } 
       }
-    } catch (error) {
-    //  console.log("TE STREAM ERROR: ", error);
+    } catch (error) {    
       throw error;
     }        
     }
@@ -132,27 +146,38 @@ export class TeService {
     }
 
  
-  async resumeProcess(sfkey,key,upid,token,mode,sflag?){
+  async resumeProcess(sfkey,key,upid,token,mode,sflag?,queuename?){
     try{
       this.logger.log("Resume Process started")
-      if(mode == 'D' && sflag == 'N'){
-        var continueresult = await this.Processor(key,upid,nodeId,arr,mode,token,sflag,sjson['Node'])    
+      const queuedata: any = await this.queueConsumer.getAllJobsFromQueue(queuename);   
+      var jobdata = queuedata[0].data.input;       
+      var nodeInfo = await this.getNodeInfo(jobdata.key+jobdata.upId,jobdata.mode)         
+      var nodeId
+        if(jobdata.mode == 'E')
+          nodeId = nodeInfo[0]  
+        if(jobdata.mode == 'D')
+          nodeId = nodeInfo[nodeInfo.length-1] 
+
+      var arr = JSON.parse(await this.redisService.getJsonData(jobdata.key+jobdata.upId+':previousArray'))
+      if(jobdata.mode == 'D' && sflag == 'N'){
+        var continueresult = await this.Processor(jobdata.key,jobdata.upId,nodeId,arr,jobdata.mode,jobdata.token,sflag)    
        // await this.pfPostProcessor(key, upid);   
-        console.log(continueresult);
+      
         
-        if(continueresult == 'Success'){         
-          return await this.commonService.responseData(201,key+upid)
+        if(continueresult == 'Success'){  
+          await this.queueConsumer.completeJobs(jobdata[0]);
+          return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }else{
           return continueresult
         }
         }
         else{
-      const decoded =  this.jwtService.decode(token,{ json: true })     
-      var psjson:any = await this.commonService.getSecurityJson(sfkey,decoded);    
+      const decoded =  this.jwtService.decode(jobdata.token,{ json: true })     
+      var psjson:any = await this.commonService.getSecurityJson(jobdata.sfkey,decoded);    
       if(typeof psjson !== 'object') {
         return psjson
       }
-      var sjson = await this.tecommonService.getPSJson(key,decoded,psjson)       
+      var sjson = await this.tecommonService.getPSJson(jobdata.key,decoded,psjson)       
             
       if(typeof sjson !== 'object') {
         return sjson
@@ -162,58 +187,37 @@ export class TeService {
       var resumeflgpermit
       if(flag == 'E') {
 
-        if(mode == 'E')
+        if(jobdata.mode == 'E')
           resumeflgpermit = incomingarr.includes('Execute') || incomingarr.includes('*')        
-        if(mode == 'D')
+        if(jobdata.mode == 'D')
           resumeflgpermit = incomingarr.includes('Debug') || incomingarr.includes('*')        
         
         if(resumeflgpermit){
-          if(mode == 'E')
+          if(jobdata.mode == 'E')
             return {status:400,err:"Permission Denied to Execute"}          
-          if(mode == 'D')
+          if(jobdata.mode == 'D')
             return {status:400,err:"Permission Denied to Debug"}
         }   
       }
       else if(flag == 'A') {
-        if(mode == 'E')
+        if(jobdata.mode == 'E')
           resumeflgpermit = incomingarr.includes('Execute') || incomingarr.includes('*')        
-        if(mode == 'D')
+        if(jobdata.mode == 'D')
           resumeflgpermit = incomingarr.includes('Debug') || incomingarr.includes('*')        
       
         if(!resumeflgpermit){
-          if(mode == 'E')
+          if(jobdata.mode == 'E')
             return {status:400,err:"Permission Denied to Execute"}          
-          if(mode == 'D')
+          if(jobdata.mode == 'D')
             return {status:400,err:"Permission Denied to Debug"}
         } 
-        else{
-          var nodeInfo = await this.getNodeInfo(key+upid,mode)
-         
-          var nodeId
-            if(mode == 'E')
-              nodeId = nodeInfo[0]  
-            if(mode == 'D')
-              nodeId = nodeInfo[nodeInfo.length-1] 
-
-          var arr = JSON.parse(await this.redisService.getJsonData(key+upid+':previousArray'))
-         
-
-          // var nodeId
-          // var arr = JSON.parse(await this.redisService.getJsonData(key+upid+':previousArray'))
-          // console.log('arr',arr);
-        
-          // if(arr.length > 0){
-          //   for(var i =0;i<arr.length;i++){
-          //     nodeId = arr[arr.length-1].nodeid
-          //   }
-          // }
+        else{  
    
-        var continueresult = await this.Processor(key,upid,nodeId,arr,mode,token,sflag,sjson['Node'])    
-       // await this.pfPostProcessor(key, upid);   
-        console.log(continueresult);
+        var continueresult = await this.Processor(jobdata.key,jobdata.upId,nodeId,arr,jobdata.mode,jobdata.token,sflag,sjson['Node'])    
         
-        if(continueresult == 'Success'){         
-          return await this.commonService.responseData(201,key+upid)
+        if(continueresult == 'Success'){ 
+          await this.queueConsumer.completeJobs(jobdata[0]);        
+          return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }else{
           return continueresult
         }
@@ -249,7 +253,7 @@ export class TeService {
             result.push(JSON.parse(entryData[feild]));         
           }            
         }
-      // console.log(result);
+    
        
         if(result.length>0){
           for(let k=0;k<result.length;k++){
@@ -268,7 +272,7 @@ export class TeService {
    
   async Processor(key,upId,nodeId,arr,mode,token,sflag,nodeDetails?) {
     this.logger.log('Resume Pf Processor started!');   
-     
+  
     var nodeid = nodeId
     var nodeIdChk =[]
     if(arr.length>0){
@@ -879,8 +883,7 @@ export class TeService {
         }      
       } 
     } 
-    }catch (error) {
-      //console.log("GET PROCESS ERROR",error);     
+    }catch (error) {          
       throw error
     }
   }
@@ -1401,9 +1404,9 @@ export class TeService {
 
       //Node's response would be cleared when execution is completed      
       if(pfjson.length > 0){
-        for (var i = 0; i < pfjson.length; i++) {       
-          await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify({}), pfjson[i].nodeId + '.data.pro.response')      
-        }
+        // for (var i = 0; i < pfjson.length; i++) {       
+        //   await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify({}), pfjson[i].nodeId + '.data.pro.response')      
+        // }
       }  
       var keys = await this.redisService.getKeys(key + upId)
       if(keys.length > 0){
@@ -1459,8 +1462,7 @@ export class TeService {
           mpst = 1;        
         }
       }
-      // console.log(cusCodeResponse, zenResponse , premapperResult, promapperResult, pstmapperResult);
-      
+            
       return { "CustomCodeResult": cusCodeResponse, "ZenResult": zenResponse , "PreMapperResult": premapperResult,"ProMapperResult": promapperResult,"PstMapperResult": pstmapperResult} ;
      
     }

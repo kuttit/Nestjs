@@ -422,9 +422,8 @@ export class CommonService {
       var token:any = this.jwtService.decode(stoken,{ json: true })
       var str = key.split(':');
       var sessioninfo = {}
-      sessioninfo['user'] =  token.preferred_username;
+      sessioninfo['user'] =  token.firstName || token.preferred_username;
       sessioninfo['appGroupName'] =  str[1];
-      sessioninfo['appName'] =  str[2];
       sessioninfo['fabric'] =  str[3];    
       sessioninfo['orgGrp'] =  token.orgGrp.orgGrpCode;
       sessioninfo['org'] =   token.orgGrp.orgCode;
@@ -491,7 +490,7 @@ async createSubcriberid(loginId: string,firstName:string,email:string,phone:stri
     phone:phone,
  
  });
-//  console.log(response);
+
 return response.data
  
   }
@@ -506,16 +505,13 @@ return response.data
   }
 
   async sendEmail(loginId: string,email:string,firstName:string,phone:string,msg:string): Promise<any> {
-    // console.log(subscriberId,email,firstName,phone);
+   
    
 
     const notificationWorkflowId = 'emailsend';
      const novu = new Novu('6fed006676fc4587d86737b7914e0ec8');
      const response = await this.getsubcriber(loginId);
-    //  console.log('all --',response);
-    // console.log(response.data);
-     //console.log(response.status);
-     
+        
       if (response.status == 404)
         {
       this.createSubcriberid(loginId,firstName,email,phone);
@@ -537,10 +533,7 @@ return response.data
   async sendSms(loginId: string,email:string,firstName:string,phone:string,msg:string): Promise<any> {
   
     const novu = new Novu('6fed006676fc4587d86737b7914e0ec8');
-    const response = await this.getsubcriber(loginId);
-    // console.log('all --',response);
-   // console.log(response.data);
-    //console.log(response.status);
+    const response = await this.getsubcriber(loginId);   
     
      if (response.status == 404)
        {

@@ -12,12 +12,25 @@ import { TeService } from './te.service';
 import { CommonService } from 'src/commonService';
 import { JwtService } from '@nestjs/jwt';
 import { GoRuleEngine } from 'src/gorule';
+import { BullModule } from '@nestjs/bull';
+import { QueueConsumer } from './queueConsumer';
 
 
 @Module({
-  imports: [HttpModule],
+  imports: [HttpModule,BullModule.forRootAsync({
+    useFactory: () => ({
+    redis:{
+      host: '192.168.2.165',
+      port: 8086,
+    }
+  })
+  }
+  ),  
+  BullModule.registerQueueAsync({
+    name: 'pfPaymentProcess'
+  })],
   controllers: [TeController,LogController],
-  providers: [RedisService,CommonService, DebugService,NodeExecutionService, TeCommonService, TeService,SavehandlerService,JwtService,GoRuleEngine],
+  providers: [RedisService,CommonService, DebugService,NodeExecutionService, TeCommonService, TeService,SavehandlerService,JwtService,GoRuleEngine,QueueConsumer],
 })
 
 export class TeModule implements NestModule 

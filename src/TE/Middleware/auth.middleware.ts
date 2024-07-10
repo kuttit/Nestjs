@@ -1,4 +1,4 @@
-import { Injectable, NestMiddleware, NotAcceptableException, NotFoundException } from '@nestjs/common'
+import { Injectable, Logger, NestMiddleware, NotAcceptableException, NotFoundException } from '@nestjs/common'
 import { Request, Response, NextFunction } from 'express'
 import { JwtService } from '@nestjs/jwt';
 import { RedisService } from 'src/redisService';
@@ -25,7 +25,7 @@ export class AuthMiddleware implements NestMiddleware {
     var availablesfkey = JSON.parse(await this.redisService.getJsonData(req.body.sfkey+':summary'))
     if(availablesfkey != null){
     if(Object.keys(availablesfkey).length>0){
-      console.log("Execution started...")
+      Logger.log("Execution started...")
       next()
     }
     else{
