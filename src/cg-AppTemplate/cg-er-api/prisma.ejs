@@ -1,0 +1,43 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+  
+generator client {
+  provider = "prisma-client-js"
+}
+
+<%_ for (let i = 0; i < data.length; i++) { _%>
+model <%= data[i].Entity  %> {
+  <%_ for (let j = 0; j < data[i].attributes.length; j++) { _%>
+  <%= data[i].attributes[j].cname  %>    <% if(data[i].attributes[j].length !== '' && data[i].attributes[j].dataType === 'Int') { _%> Decimal<%_ } else {_%> <%= data[i].attributes[j].dataType  %><%_ } _%>   <%= ' '  %>    <%= data[i].attributes[j].constraints  %>  <% if(data[i].attributes[j].length !== '' && data[i].attributes[j].dataType === 'String') { _%>@db.VarChar(length: <%= data[i].attributes[j].length  %>)<%_ }else if(data[i].attributes[j].length !== '' && data[i].attributes[j].dataType === 'Int'){ _%>@db.Decimal(precision: <%= data[i].attributes[j].length  %>, scale: 0)<%_} _%>
+
+  <%_} _%>
+  <%_ for (let k = 0; k < relation.length; k++) { _%>
+  <%_ if (relation[k].Relationship === 'One,One') { _%>
+  <%_ if (data[i].Entity === relation[k].sEntity ) { _%>
+  <%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>?    
+  <%_} _%>  
+  <%_ if (data[i].Entity === relation[k].tEntity ) { _%>
+  <%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %> @relation(fields: [<%= relation[k].tColumn  %>], references: [<%= relation[k].sColumn  %>])    
+  <%_} _%>  
+  <%_} _%>  
+  <%_ if (relation[k].Relationship === 'One,Many') { _%>
+  <%_ if (data[i].Entity === relation[k].sEntity ) { _%>
+  <%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>[]    
+  <%_} _%>  
+  <%_ if (data[i].Entity === relation[k].tEntity ) { _%>
+  <%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %> @relation(fields: [<%= relation[k].tColumn  %>], references: [<%= relation[k].sColumn  %>])   
+  <%_} _%>  
+  <%_} _%>  
+  <%_ if (relation[k].Relationship === 'Many,Many') { _%>
+  <%_ if (data[i].Entity === relation[k].sEntity ) { _%>
+  <%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>[]    
+  <%_} _%>  
+  <%_ if (data[i].Entity === relation[k].tEntity ) { _%>
+  <%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %>[]    
+  <%_} _%>  
+  <%_} _%> 
+  <%_} _%>
+}
+<%_}  _%>

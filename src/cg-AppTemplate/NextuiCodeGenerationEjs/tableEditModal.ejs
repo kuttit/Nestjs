@@ -1,0 +1,120 @@
+'use client'
+import { useState } from 'react'
+
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  Button,
+  useDisclosure,
+  Input
+} from '@nextui-org/react'
+import { EditIcon } from '../components/icons'
+
+const URL = process.env.NEXT_PUBLIC_API_URL + '<%= data.tname.toLowerCase() %>/'
+
+const <%= data.tname %>EditModal = ({
+  id,
+  setRefetch,
+  update
+}: {
+  id: any
+  setRefetch: any
+  update: any
+}) => {
+  const { isOpen, onOpen, onOpenChange } = useDisclosure()
+  const [formvalue, setFormVal] = useState({})
+  const [fetchUser, setFetchUser] = useState(update)
+
+  async function post(e: any) {
+    console.log(e, id)
+    e.preventDefault()
+    const url = URL + id
+    console.log(url, 'URL')
+    console.log(formvalue)
+    const res = await fetch(url, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formvalue)
+    })
+    console.log(res)
+    if (res) {
+      setRefetch((prev: boolean) => !prev)
+    }
+  }
+
+  const handleChange = (e: any) => {
+    if (e.target.type == 'number') {
+      setFormVal(prev => ({
+        ...prev,
+        [e.target.name]: Number(e.target.value)
+      }))
+    } else {
+      setFormVal(prev => ({ ...prev, [e.target.name]: e.target.value }))
+    }
+  }
+  // console.log(formvalue)
+
+  return (
+    <>
+      <span onClick={onOpen}>
+        <EditIcon />
+      </span>
+      <Modal isOpen={isOpen} onOpenChange={onOpenChange} placement='top-center'>
+        <ModalContent>
+          {onClose => (
+            <>
+              <ModalHeader className='flex flex-col gap-1'>Log in</ModalHeader>
+              <ModalBody>
+                <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+                  <%_ if (data.columns[i].contraints.includes('@default') || data.columns[i].contraints.includes('@updatedAt')) { _%>
+                  <%_} else {_%>   
+                    <Input
+                    autoFocus
+                    label='<%= data.columns[i].labelName %>'
+                    name='<%= data.columns[i].cname %>'
+                    placeholder='Enter your <%= data.columns[i].labelName %>'
+                    variant='bordered'
+                    <%_ if (data.columns[i].datatype.includes('?') ) { _%>
+                    isRequired={false}                    
+                         <%_} else { _%>   
+                    isRequired={true}
+                        <%_} _%>
+                      <%_ if (data.columns[i].datatype.includes('Int') || data.columns[i].datatype.includes('DateTime')) { _%>
+                    type='number'
+                      <%_ } else if (data.columns[i].datatype.includes('String')) { _%>
+                    type='string'
+                      <%_ } else if (data.columns[i].datatype.includes('Boolean')) { _%>
+                    type='boolean'
+                       <%_} else { _%> <%= data.columns[i].datatype %>    
+                      <%_} _%>
+                    value={fetchUser.<%= data.columns[i].cname %>}
+                    onChange={e => {
+                      setFetchUser({ ...fetchUser, <%= data.columns[i].cname %>: e.target.value })
+                      handleChange(e)
+                    }}
+                  />
+                  <%_} _%>
+                  <%_ }  _%>
+              </ModalBody>
+              <ModalFooter>
+                <Button color='danger' variant='flat' onPress={onClose}>
+                  Close
+                </Button>
+                <Button color='primary' onPress={onClose} onClick={post}>
+                  Update
+                </Button>
+              </ModalFooter>
+            </>
+          )}
+        </ModalContent>
+      </Modal>
+    </>
+  )
+}
+
+export default <%= data.tname %>EditModal

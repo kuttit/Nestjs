@@ -1,0 +1,24 @@
+datasource db {
+    provider = "postgresql"
+    url      = env("DATABASE_URL")
+  }
+  
+  generator client {
+    provider = "prisma-client-js"
+  }
+
+  <%_ if(data.Entities.length > 0) { _%>
+  <%_ data.Entities.forEach((table) => { _%>
+
+  model <%= table.tname %>{
+    <% table.columns.forEach((col) => { %>
+      <%= col.cname %> <%= col.datatype %> <%= col.contraints %> <%_ if(col.relationship){ _%> 
+      <% col.relationship.forEach((rel) => { %>
+      <%= col.cname+'relation' %> <%= rel.parent %> @relation(fields: [<%= col.cname %>], references: [<%= rel.parentColumn %>])
+      <%_ }) _%><%_} else { } _%><%_})%>
+      <%_ relation.forEach((ref) => { _%>
+      <%_ if(ref.parent === table.tname) { _%>
+      <%= ref.table.toLowerCase() %> <%= ref.table %><%= ref.option %>
+      <%_} else {} _%><%_ }) _%>      
+  }
+  <% })} %>

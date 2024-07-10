@@ -1,0 +1,12 @@
+import { <%= relation %> } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class  <%= relation.toLowerCase() %>Entity implements  <%= relation %> {
+    <%_ data.forEach((col)=> {_%>
+        @ApiProperty()
+        <%= col.cname %>:<% if (col.datatype === 'Int'){ %>number<% } else if (col.datatype === 'String?'){ %>string<% } else if (col.datatype === 'DateTime'){ %>Date<% } else {%> <%= col.datatype.toLowerCase() %><%_ } _%>;
+   <%_ }) _%>
+    }
+      
+   
+  export { <%= relation %> };

@@ -1,0 +1,72 @@
+pipeline {
+    agent { label 'slave-174' } // Use label to specify the Jenkins agent
+
+    environment {
+        DOCKER_REGISTRY = "192.168.2.164:5000"
+        APP_NAME = "torus9x-nest-app"
+        BUILD_NUMBER = "${BUILD_NUMBER}"
+        GITHUB_CREDENTIALS = "GIT_HUB_PAT"
+        GITHUB_TOKEN = "GIT_HUB_PAT"
+        IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Cleanup Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage('Checkout SCM') {
+            steps {
+                git credentialsId: "${GITHUB_CREDENTIALS}", 
+                    url: 'https://github.com/kuttit/Nestjs.git',
+                    branch: 'master'
+            }
+        }
+
+        stage('Docker Build Image') {
+            steps {
+                script {
+                    sh "docker build -t ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Push to Registry') {
+            steps {
+                script {
+                    docker.withRegistry("http://${DOCKER_REGISTRY}", '') {
+                        sh "docker push ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Updating Kubernetes deployment file') {
+            steps {
+                script {
+                    sh "cat kubernetes/deploymentservice.yaml"
+                    sh "sed -i 's/replaceImageTag/${BUILD_NUMBER}/g' kubernetes/deploymentservice.yaml"
+                    sh "cat kubernetes/deploymentservice.yaml"
+                }
+            }
+        }
+
+        stage('Push the changed deployment file to Git') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: 'GIT_HUB_PAT', passwordVariable: 'GIT_HUB_PAT')]) {
+                        sh """
+                        git config --global user.name "kuttit"
+                        git config --global user.email "kuttit@gsstvl.com"
+                        git add kubernetes/deploymentservice.yaml
+                        git commit -m 'Updated the deployment file'
+                        git push https://username:${GIT_HUB_PAT}@github.com/kuttit/Nestjs.git master
+                        """
+                    }
+                }
+            }
+        }
+    }
+}

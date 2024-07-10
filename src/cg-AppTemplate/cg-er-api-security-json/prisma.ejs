@@ -1,0 +1,51 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+provider = "prisma-client-js"
+}
+
+<%_ for (let i = 0; i < data.length; i++) { _%>
+model <%= data[i].entities.Entity.toLowerCase()  %> {
+<%_ for (let j = 0; j < data[i].entities.attributes.length; j++) { _%>
+<%= data[i].entities.attributes[j].cname.toLowerCase()  %>    <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int') { _%> Decimal<%_ } else {_%> <%= data[i].entities.attributes[j].dataType.selectedValue  %><%_ } _%>   <%= ' '  %>    <%= data[i].entities.attributes[j].constraints  %>  <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'String') { _%>@db.VarChar(length: <%= data[i].entities.attributes[j].length  %>)<%_ }else if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int'){ _%>@db.Decimal(precision: <%= data[i].entities.attributes[j].length  %>, scale: 0)<%_} %>
+<%_} _%>
+<%_ for (let k = 0; k < relation.length; k++) { _%>
+<%_ if (relation[k].Relationship === 'One,One') { _%>
+<%_ if (data[i].entities.Entity === relation[k].sEntity ) { _%>
+<%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>?    
+<%_} _%>  
+<%_ if (data[i].entities.Entity === relation[k].tEntity ) { _%>
+<%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %> @relation(fields: [<%= relation[k].tColumn  %>], references: [<%= relation[k].sColumn  %>])    
+<%_} _%>  
+<%_} _%>  
+<%_ if (relation[k].Relationship === 'One,Many') { _%>
+<%_ if (data[i].entities.Entity === relation[k].sEntity ) { _%>
+<%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>[]    
+<%_} _%>  
+<%_ if (data[i].entities.Entity === relation[k].tEntity ) { _%>
+<%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %> @relation(fields: [<%= relation[k].tColumn  %>], references: [<%= relation[k].sColumn  %>])   
+<%_} _%>  
+<%_} _%>  
+<%_ if (relation[k].Relationship === 'Many,Many') { _%>
+<%_ if (data[i].entities.Entity === relation[k].sEntity ) { _%>
+<%= relation[k].tEntity.toLowerCase()  %>   <%= relation[k].tEntity  %>[]    
+<%_} _%>  
+<%_ if (data[i].entities.Entity === relation[k].tEntity ) { _%>
+<%= relation[k].sEntity.toLowerCase()  %>   <%= relation[k].sEntity  %>[]    
+<%_} _%>  
+<%_} _%> 
+<%_} _%>
+created_date    DateTime     @default(now())  
+created_by    String?       
+modified_date    DateTime     @updatedAt  
+modified_by    String?       
+eligibleStatus    String?       
+eligibleProcessStatus    String?       
+finalStatus    String?       
+finalProcessStatus    String?    
+}
+
+<%_ } _%>

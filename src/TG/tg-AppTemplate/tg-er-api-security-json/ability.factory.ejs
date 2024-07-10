@@ -1,0 +1,146 @@
+import { Injectable } from '@nestjs/common';
+import {
+  AbilityBuilder,
+  Ability,
+  InferSubjects,
+  AbilityClass,
+  ExtractSubjectType,
+} from '@casl/ability';
+<%_ const uniqueResource = new Set(); _%>
+<%_ for(let i=0;i<relation.length;i++){ _%>
+    <%_ const tablename = structuredClone(relation[i].resource)_%>
+    <%_ uniqueResource.add(tablename); _%>
+<%_ } _%>
+ 
+// <%=[...uniqueResource]%>
+ 
+ 
+<%_ for(let i = 0;i < data.jdata.length;i++){ _%>
+  <%_ let tabName = data.jdata[i].entities.Entity _%>
+  <%_ if (uniqueResource.has(tabName)) { _%>
+import { <%= tabName.toLowerCase()  %>Entity } from 'src/<%= tabName  %>/entity/<%= tabName  %>.entity';
+  <%_ } _%>
+<%_ } _%>
+import { defaultEntity } from 'src/default/entity/default.entity'
+ 
+ 
+export enum Action {
+  Manage = 'manage',
+  Create = 'create',
+  Read = 'read',
+  Update = 'update',
+  Delete = 'delete',
+}
+ 
+export type Subjects = | InferSubjects<<%_ for(let i = 0;i < data.jdata.length;i++){ _%>
+  <%_ let tabName = data.jdata[i].entities.Entity _%>
+  <%_ if (uniqueResource.has(tabName)) { _%>
+| typeof <%= tabName.toLowerCase()  %>Entity
+  <%_} _%>
+<%_ } _%>| typeof defaultEntity > | 'all';
+ 
+export type AppAbility = Ability<[Action, Subjects]>;
+ 
+@Injectable()
+export class AbilityFactory {
+  defineAbility(tenent: string, appGroup: string, appName: string,orgCode:string,orgGrpCode:string,roleCode:string,roleGrpCode:string,psCode:string,psGrpCode:string) {
+    const { can, cannot, build } = new AbilityBuilder(
+      Ability as AbilityClass<AppAbility>,
+    );
+   
+    <%_ const uniquetables = new Set(); _%>
+    <%_ for(let i = 0;i < data.jdata.length;i++){ _%>
+    <%_ let tabName1 = data.jdata[i].entities.Entity _%>
+    <%_ uniquetables.add(tabName1); _%>
+    <%_ } _%>
+    <%_for(let i = 0;i < relation.length;i++){  _%>
+    <%_ if(uniquetables.has(relation[i].resource)) { _%>
+     if(tenent === '<%= relation[i].tenantName %>' && appGroup.includes('<%= relation[i].appGroupName %>') && appName === '<%= relation[i].appName %>' && orgGrpCode === '<%= relation[i].orgGrpCode %>' && orgCode === '<%= relation[i].orgCode %>' && roleGrpCode === '<%= relation[i].roleGrpCode %>' && roleCode === '<%= relation[i].roleCode %>' && psGrpCode === '<%= relation[i].psGrpCode %>' && psCode === '<%= relation[i].psCode %>' ){
+      <%_ if(relation[i].SIFlag ==='A') {_%>
+      <%_for(let j = 0;j < relation[i].can.length;j++){  _%>
+      <%_if(relation[i].can[j] === '*')  {_%>
+        can(Action.Manage,<%= relation[i].resource.toLowerCase() %>Entity);
+        <%_ break; _%>    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'POST')  {_%>
+        can(Action.Create,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'GET')  {_%>
+        can(Action.Read,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'UPDATE')  {_%>
+        can(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'PATCH')  {_%>
+        can(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'DELETE')  {_%>
+        can(Action.Delete,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_} _%>
+      <%_} _%>
+      <%_ if(relation[i].SIFlag ==='E') {_%>
+      <%_ var methods = ['GET','POST','UPDATE','PATCH','DELETE']; _%>
+      <%_ var methods1 = [] _%>
+    <%_for(let k = 0;k < relation[i].cannot.length;k++){  _%>
+      <%_ methods1.push(relation[i].cannot[k]); _%>
+      <%_if(relation[i].cannot[k] === '*')  {_%>
+        cannot(Action.Manage,<%= relation[i].resource.toLowerCase() %>Entity);
+        <%_ break; _%>
+      <%_} _%>
+      <%_if(relation[i].cannot[k] === 'POST')  {_%>
+        cannot(Action.Create,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_}_%>
+      <%_if(relation[i].cannot[k] === 'GET')  {_%>
+        cannot(Action.Read,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_}_%>
+      <%_if(relation[i].cannot[k] === 'UPDATE')  {_%>
+        cannot(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+      <%_if(relation[i].cannot[k] === 'PATCH')  {_%>
+        cannot(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].cannot[k] === 'DELETE')  {_%>
+        cannot(Action.Delete,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+    <%_} _%>
+    <%_ var methods2 = methods.filter(item => !methods1.includes(item)) _%>
+    <%_ for(let x=0;x<methods1.length;x++){ _%>
+      <%_ if(methods1[x] === '*')  {_%>
+        <%_ var methods3 = methods2.filter(item => {item !== 'UPDATE' && item !== 'PATCH' && item !== 'DELETE' && item !== 'GET' && item !== 'POST'}) _%>
+      <%_}else if(methods1[x] === 'PATCH')  {_%>
+        <%_ var methods3 = methods2.filter(item => item !== 'UPDATE') _%>
+      <%_ }else if(methods1[x] === 'UPDATE')  {_%>
+        <%_ var methods3 = methods2.filter(item => item !== 'PATCH') _%>
+      <%_ }else{ _%>
+        <%_ var methods3 = methods2.filter(item => item !== 'UPDATE') _%>
+    <%_ } _%>
+    <%_ } _%>
+    <%_ for(let n=0;n<methods3.length;n++){ _%>
+      <%_if(methods3[n] === 'POST')  {_%>
+        can(Action.Create,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_}_%>
+      <%_if(methods3[n] === 'GET')  {_%>
+        can(Action.Read,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_}_%>
+      <%_if(methods3[n] === 'UPDATE')  {_%>
+        can(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+      <%_if(methods3[n] === 'PATCH')  {_%>
+        can(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(methods3[n] === 'DELETE')  {_%>
+        can(Action.Delete,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+    <%_ } _%>
+    <%_ } _%>  
+      }  
+    <%_ } _%>
+    <%_ } _%>
+   
+    return build({
+      detectSubjectType: (item) =>
+        item.constructor as ExtractSubjectType<Subjects>,
+    });
+  }
+}

@@ -1,0 +1,30 @@
+"use client"
+import React, { useEffect, useState } from 'react'
+import AppSelector from '../components/appSelector'
+import { Spinner } from '@nextui-org/react'
+
+const page = () => {
+  const [tenant, setTenant] = useState('')
+  useEffect(() => {
+    const res = localStorage.getItem('user')
+    if (res) {
+      const user = JSON.parse(res)
+      setTenant(user.realm)
+    }
+  }, [])
+  return (
+    <div>
+      {tenant ? (
+        <div className='h-full w-full'>
+          <AppSelector tenant={tenant} />
+        </div>
+      ) : (
+        <div className='h-full w-full items-center justify-center'>
+          <Spinner />
+        </div>
+      )}
+    </div>
+  )
+}
+
+export default page

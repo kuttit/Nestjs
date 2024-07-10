@@ -1,0 +1,55 @@
+import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
+import { PrismaService } from 'src/prisma.service';
+
+@Injectable()
+export class <%= relation %>Service {
+  constructor(private readonly prismaService: PrismaService) {}
+
+  <%_ data.methods.forEach((method) => { _%>
+  <%_ if(method.methodName === 'Post' && method.isActive.value === true) { _%> 
+  async create(create<%= relation %>Dto: Prisma.<%= relation %>CreateInput) {
+    return this.prismaService.<%= relation.toLowerCase() %>.create({ 
+      data: create<%= relation %>Dto, 
+      select:{<%_ const result = method.QueryParams.selectionList.filter(item => !method.QueryParams.selectedValue.includes(item)) _%><%_ for(let i=0;i<result.length;i++){ _%><%= result[i] %>:true<% if (i !== result.length-1){ %>,<%_ } _%><%_ } %>}
+    })
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'GetALL' && method.isActive.value === true) { _%> 
+  async findAll() {
+    return this.prismaService.<%= relation.toLowerCase() %>.findMany({ 
+      select: {<%_ var result = method.QueryParams.selectionList.filter(item => !method.QueryParams.selectedValue.includes(item)) _%><%_ for(let i=0;i<result.length;i++){ _%><%= result[i] %>:true<% if (i !== result.length-1) { %>,<%_ } _%><%_ } %>}
+      });
+    }
+    
+  <%_ } _%>
+  <%_ if(method.methodName === 'Get' && method.isActive.value === true) { _%> 
+  async findOne(<%_ for(let i=0;i<method.QueryConditions.selectedValue.length;i++){ _%><%= method.QueryConditions.selectedValue[i] %>:<%_for(var j=0; j< data.attributes.length; j++){ _%><%_ if(data.attributes[j].cname === method.QueryConditions.selectedValue[i]){ _%><% if (data.attributes[j].dataType === 'Int'){ %>number<% } else {%> <%= data.attributes[j].dataType.toLowerCase() %><% } %><%_ } _%><%_ } _%><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} _%>) {
+    return this.prismaService.<%= relation.toLowerCase() %>.findUnique({ 
+      where: {<%_ for (var i=0; i< method.QueryConditions.selectedValue.length; i++){ _%><%= method.QueryConditions.selectedValue[i] %><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} _%> },
+      select: {<%_ const result = method.QueryParams.selectionList.filter(item => !method.QueryParams.selectedValue.includes(item)) _%><%_ for(let i=0;i<result.length;i++){ _%><%= result[i] %>:true<% if (i !== result.length-1) { %>,<%_ } _%><%_ } %>}
+    });
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Put' && method.isActive.value === true) { _%>
+  async update(<%_ for(let i=0;i<method.QueryConditions.selectedValue.length;i++){ _%><%= method.QueryConditions.selectedValue[i] %>:<%_for(var j=0; j< data.attributes.length; j++){ _%><%_ if(data.attributes[j].cname === method.QueryConditions.selectedValue[i]){ _%><% if (data.attributes[j].dataType === 'Int'){ %>number<% } else {%> <%= data.attributes[j].dataType.toLowerCase() %><% } %><%_ } _%><%_ } _%><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} _%>, update<%= relation %>Dto: Prisma.<%= relation %>UpdateInput) {
+    return this.prismaService.<%= relation.toLowerCase() %>.update({
+      where: {<%_ for (var i=0; i< method.QueryConditions.selectedValue.length; i++){ _%><%= method.QueryConditions.selectedValue[i] %><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} _%> },
+      data: update<%= relation %>Dto,
+      select: {<%_ const result = method.QueryParams.selectionList.filter(item => !method.QueryParams.selectedValue.includes(item)) _%><%_ for(let i=0;i<result.length;i++){ _%><%= result[i] %>:true<% if (i !== result.length-1) { %>,<%_ } _%><%_ } %>}
+    });
+  }
+
+  <%_ } _%>
+  <%_ if(method.methodName === 'Delete' && method.isActive.value === true) { _%>
+  async remove(<%_ for(let i=0;i<method.QueryConditions.selectedValue.length;i++){ _%><%= method.QueryConditions.selectedValue[i] %>:<%_for(var j=0; j< data.attributes.length; j++){ _%><%_ if(data.attributes[j].cname === method.QueryConditions.selectedValue[i]){ _%><% if (data.attributes[j].dataType === 'Int'){ %>number<% } else {%> <%= data.attributes[j].dataType.toLowerCase() %><% } %><%_ } _%><%_ } _%><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} _%>) {
+    return this.prismaService.<%= relation.toLowerCase() %>.delete({
+      where: {<%_ for (var i=0; i< method.QueryConditions.selectedValue.length; i++){ _%><%= method.QueryConditions.selectedValue[i] %><% if (i !== method.QueryConditions.selectedValue.length-1) { %>,<%_ }} %> },
+      select: {<%_ const result = method.QueryParams.selectionList.filter(item => !method.QueryParams.selectedValue.includes(item)) _%><%_ for(let i=0;i<result.length;i++){ _%><%= result[i] %>:true<% if (i !== result.length-1) { %>,<%_ } _%><%_ } %>}
+    });
+  }
+  <%_ } _%>
+  <%_ }) _%>
+}

@@ -1,0 +1,48 @@
+'use client'
+
+import { TimeInput,TimeInputProps } from "@nextui-org/react"
+
+export const TimeInputComponent: React.FC<TimeInputProps> = ({
+  isRequired,
+  isDisabled,
+  isReadOnly,
+  labelPlacement,
+  granularity,
+  placeholderValue,
+  hideTimeZone,
+  hourCycle,
+  label,
+  name,
+  value,
+  className,
+  defaultValue,
+  isInvalid,
+  onChange,
+  children,
+}) => {
+  return (
+    <TimeInput
+      isRequired={isRequired}
+      isDisabled={isDisabled}
+      isReadOnly={isReadOnly}
+      labelPlacement={labelPlacement}
+      granularity={granularity}
+      placeholderValue={placeholderValue}
+      hideTimeZone={hideTimeZone}
+      hourCycle={hourCycle}
+      label={label}
+      className={className}
+      name={name}
+      value={value}
+      defaultValue={defaultValue}
+      isInvalid={isInvalid}
+      onChange={onChange}
+    >
+        {children}
+    </TimeInput>
+    
+  )
+}
+
+
+

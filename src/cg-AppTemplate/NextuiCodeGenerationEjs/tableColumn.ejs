@@ -1,0 +1,77 @@
+import { Tooltip } from '@nextui-org/react'
+import <%= data.tname %>EditModal from './<%= data.tname %>EditModal'
+import <%= data.tname %>DeleteModal from './<%= data.tname %>DeleteModal'
+
+export type <%= data.tname %> = {
+  <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+  <%= data.columns[i].cname %> : <%_ if (data.columns[i].datatype.includes('Int') || data.columns[i].datatype.includes('DateTime')) { _%>
+    number
+  <%_ } else if (data.columns[i].datatype.includes('String')) { _%>
+    string
+  <%_ } else if (data.columns[i].datatype.includes('Boolean')) { _%>
+    boolean
+   <%_} else { _%> <%= data.columns[i].datatype %>    
+  <%_} _%>
+  <%_} _%>
+}
+
+export const columns = [
+<%_ for (let i = 0; i < data.columns.length; i++) { _%>
+   {
+     key: '<%= data.columns[i].cname  %>',
+    label: '<%= data.columns[i].labelName  %>'
+   },
+ <%_ } _%>   
+  {
+    key: 'actions',
+    label: 'Actions'
+  }
+]
+
+export const renderCell = (
+  <%= data.tname.toLowerCase() %>: <%= data.tname %>,
+  columnKey: React.Key,
+  setRefetch: any
+) => {
+  const cellValue:any = <%= data.tname.toLowerCase() %>[columnKey as keyof <%= data.tname %>]
+
+  {
+    switch (columnKey) {
+    <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+    <%_ if (data.columns[i].datatype.includes('DateTime')) { _%>
+      case '<%= data.columns[i].cname  %>':
+      return <span>{new Date(cellValue).toLocaleDateString()}</span>
+    <%_ } else if(data.columns[i].datatype.includes('Boolean')){ _%>
+      case '<%= data.columns[i].cname  %>':
+      return <span>{cellValue.toString()}</span>
+    <%_ } else { _%>
+      case '<%= data.columns[i].cname  %>':
+      return <span>{cellValue}</span>
+    <%_ } _%>      
+    <%_ } _%>
+      case 'actions':
+        return (
+          <div className='relative flex items-center gap-4'>
+            <Tooltip content='Edit Record'>
+              <span className='cursor-pointer text-lg text-default-400 active:opacity-50'>
+                <<%= data.tname %>EditModal
+                  id={<%= data.tname.toLowerCase() %>.id}
+                  setRefetch={setRefetch}
+                  update={<%= data.tname.toLowerCase() %>}
+                />
+              </span>
+            </Tooltip>
+            <Tooltip color='danger' content='Delete Record'>
+              <span className='cursor-pointer text-lg text-danger active:opacity-50'>
+                <<%= data.tname %>DeleteModal id={<%= data.tname.toLowerCase() %>.id} setRefetch={setRefetch} />
+              </span>
+            </Tooltip>
+          </div>
+        )
+      default:
+        return cellValue
+    }
+  }
+}
+
+

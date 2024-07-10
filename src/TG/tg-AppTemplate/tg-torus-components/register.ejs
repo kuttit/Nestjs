@@ -1,0 +1,601 @@
+'use client'
+import React, { useEffect, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { z } from 'zod' 
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Input } from '@nextui-org/react'
+import { Button } from '@nextui-org/react'
+import axios from 'axios'
+import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import logo from '@/app/assets/favicon.ico'
+import { toast } from 'react-toastify'
+import {
+  Dropdown,
+  DropdownMenu,
+  DropdownTrigger,
+  DropdownItem
+} from '@nextui-org/react'
+
+import { MdOutlineRemoveRedEye } from 'react-icons/md'
+import { IoEyeOffOutline } from 'react-icons/io5'
+import { getVerifyOtp, validateOtp } from '../torusComponents/serverFunctions'
+
+type Realm = {
+  id: string
+  name: string
+}
+const RegisterForm = () => {
+  const [checkDetails, setCheckDetails] = useState(false)
+  const [userData, setUserData] = useState<any>({})
+  const [realmData, setRealmData] = useState<any>({
+    realm: '',
+    client_id: '',
+    client_secret: ''
+  })
+  const [steps, setSteps] = useState('0')
+  const [token, setToken] = useState<any>()
+  const [realmList, setRealmList] = useState<Realm[] | any[]>([])
+  const [realmId, setRealmId] = useState<string>('')
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await axios.get('http://localhost:3002/keycloak/allRealm')
+
+        res.status == 200
+          ? setRealmList(res.data)
+          : setRealmList([])
+      } catch (err) {
+        console.log('Error occured')
+      }
+    })()
+  }, [])
+
+  const router = useRouter()
+  const [isVisible, setIsVisible] = React.useState(false)
+  const [isVisibility, setIsVisibility] = React.useState(false)
+
+  const toggleVisibility = () => setIsVisible(!isVisible)
+  const toggleVisible = () => setIsVisibility(!isVisibility)
+
+  const schema = z
+    .object({
+      username: z
+        .string()
+        .min(2, { message: 'username should be at least 2 characters' })
+        .max(20, { message: 'max limit' }),
+      firstName: z
+        .string()
+        .min(3, { message: 'firstName should be at least 3 characters' })
+        .max(30),
+      lastName: z.string().min(1, { message: 'Please provide lastName' }),
+      email: z.string().email(),
+      password: z.string().min(4, { message: 'Please provide valid password' }),
+      confirmPassword: z
+        .string()
+        .min(4, { message: 'Please provide valid password' })
+    })
+    .refine((data: any) => data.password === data.confirmPassword, {
+      message: 'Passwords do not match',
+      path: ['confirmPassword']
+    })
+
+  const {
+    register,
+    handleSubmit,
+    formState: { errors }
+  } = useForm({ resolver: zodResolver(schema) })
+
+  const getRealmRegisToken = async (userEmail: any) => {
+    // Define the URL
+    const url = `https://keycloak9x.gsstvl.com:18443/realms/${realmData.realm}/protocol/openid-connect/token`
+
+    // Define the request body as a URL-encoded string
+    const requestBody = {
+      grant_type: 'client_credentials',
+      client_id: realmData.client_id,
+      client_secret: realmData.client_secret
+    }
+
+    // Define the headers
+    const headers = {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+    const encodeFormData = (data: any) => {
+      return Object.keys(data)
+        .map(
+          key => encodeURIComponent(key) + '=' + encodeURIComponent(data[key])
+        )
+        .join('&')
+    }
+
+    // Make the POST request with request body and headers
+    const res = await axios.post(url, encodeFormData(requestBody), {
+      headers: headers
+    })
+    if (res.data) {
+      setToken(res.data.access_token)
+      getVerifyOtp({ email: userEmail }).then(res => {
+        if (res.data == 'Email sent') {
+          toast.success('Otp sent to the provided email')
+          setSteps('1')
+        } else toast.error('unable to send otp')
+      })
+    } else {
+      toast.error('error occured')
+    }
+  }
+  const submitData = async (data: any) => {
+    const requestBody = {
+      attributes: {
+        attribute_key: 'test_value'
+      },
+      credentials: [
+        {
+          temporary: false,
+          type: 'password',
+          value: data.password
+        }
+      ],
+      username: data.username,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      email: data.email,
+      emailVerified: true,
+      enabled: true
+    }
+    setUserData(requestBody)
+    getRealmRegisToken(data.email)
+  }
+
+  const [otp, setOtp] = useState<any>({ otp: '' })
+
+  const handleOtpChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
+    setOtp({ [name]: value })
+  }
+  const verifyOtpandPostUser = async () => {
+    const res = await validateOtp({
+      otp: otp.otp,
+      email: userData.email
+    })
+    if (res.error == 'Invalid Otp or OTP expired') {
+      toast.error('Invalid Otp or OTP expired')
+    } else {
+      if (res.data == 'Email verified successfully') {
+        try {
+          toast.success("Email verified successfully , registration on process")
+          const headers = {
+            Authorization: `Bearer ${token}` // Include bearer token in headers
+          }
+          axios
+            .post(
+              `https://keycloak9x.gsstvl.com:18443/admin/realms/${realmData.realm}/users`,
+              userData,
+              {
+                headers: headers
+              }
+            )
+            .then(res => {
+              if (res.status == 201) {
+                toast.success('Registered successfully , login to your account')
+                router.push('/')
+              } else {
+                toast.error('failed to create')
+              }
+            })
+        } catch (error) {
+          toast.error('Error occured ')
+          console.error('Error:', error)
+        }
+      }
+    }
+  }
+
+  const handleSelectRealm = async (datas: any) => {
+    setRealmId(datas.id)
+    setRealmData({ ...realmData, realm: datas.name })
+    // handleClientCredentials();
+  }
+  const handleClientCredentials = async () => {
+    if (!realmId) return
+    const res = await axios.get(
+      `http://localhost:3002/keycloak/allClient/${realmId}`
+    )
+    if (res.data.length) {
+      setRealmData({
+        ...realmData,
+        client_id: res.data[0].client_id,
+        client_secret: res.data[0].secret
+      })
+    }
+  }
+
+  useEffect(() => {
+    handleClientCredentials()
+  }, [realmId])
+
+  return (
+    <div className='md:max-w-screen flex w-full flex-col items-center gap-2   md:flex-row  '>
+      <div
+        className='flex min-h-screen w-full flex-col   items-center justify-center gap-2  bg-slate-400'
+        style={{
+          background:
+            'radial-gradient(circle, rgba(67,57,208,1) 0%, rgba(9,9,121,1) 19%, rgba(18,18,19,1) 100%)'
+        }}
+      >
+        <div className='flex gap-2 '>
+          <Image
+            className=' h-12 w-12   transition-all'
+            src={logo}
+            alt=''
+          ></Image>
+
+          <h2 className='text-center text-4xl font-bold text-white'>Torus</h2>
+        </div>
+
+        {(() => {
+          switch (steps) {
+            case '0':
+              return (
+                <div className='flex w-[42%] flex-col gap-4 rounded-xl border-2 border-[#323B45] bg-slate-800/70 p-4 text-white shadow-md'>
+                  <div>
+                    <h2 className='text-bold text-2xl font-semibold '>
+                      Create Account
+                    </h2>
+                    <p className='text-[14px] text-slate-400'>
+                      Sign into your account by entering your information below
+                    </p>
+                  </div>
+
+                  <Dropdown className='w-[400px] border border-[#20252B]  p-0 '>
+                    <DropdownTrigger>
+                      <Button
+                        size='lg'
+                        variant='bordered'
+                        className={`border-2 border-[#323B45] ${
+                          checkDetails && !realmData.realm
+                            ? 'text-red-400'
+                            : 'text-white'
+                        }`}
+                      >
+                        {realmData.realm ? realmData.realm : 'Select Tenant'}
+                      </Button>
+                    </DropdownTrigger>
+                    <DropdownMenu
+                      aria-label='Link Actions'
+                      className=' rounded-sm text-white'
+                      variant='light'
+                      classNames={{
+                        base: 'bg-[#20252B] border-1 border-black'
+                      }}
+                    >
+                      {realmList.map((realm, id) => (
+                        <DropdownItem
+                          className=' text-white hover:bg-slate-200'
+                          key={id}
+                          onClick={() => handleSelectRealm(realm)}
+                        >
+                          {realm.name}
+                        </DropdownItem>
+                      ))}
+                    </DropdownMenu>
+                  </Dropdown>
+
+                  <form
+                    onSubmit={handleSubmit(submitData)}
+                    className='flex flex-col gap-1'
+                  >
+                    <Input
+                      label=' Enter your username'
+                      labelPlacement='outside'
+                      variant='bordered'
+                      color={`${errors.username ? 'danger' : 'primary'}`}
+                      classNames={{
+                        base: ' w-full h-7 my-2 -mt-3 ',
+                        label: ['text-xs  text-white focus-within:text-white'],
+
+                        inputWrapper: [
+                          'border border-slate-500/50',
+                          'text-white',
+                          'bg-transparent',
+                          'data-[hover=true]:bg-[#282551]',
+                          'data-[hover=true]:border-[#4435CF]',
+                          'focus-within:!bg-[#282551]',
+                          'focus-within:border-[#4435CF] border-2'
+                        ],
+                        innerWrapper: [
+                          'bg-transparent',
+                          'boder-2 border-blue-100'
+                        ]
+                      }}
+                      type='text'
+                      {...register('username')}
+                    />
+                    {errors.username && (
+                      <p
+                        className='text-xs text-red-500'
+                        style={{ color: 'red' }}
+                      >
+                        {errors?.username?.message as string}
+                      </p>
+                    )}
+                    <div className='flex justify-between gap-2 text-xs'>
+                      <div className='flex w-full flex-col gap-2'>
+                        <Input
+                          label='firstname'
+                          labelPlacement='outside'
+                          variant='bordered'
+                          color={`${errors.firstName ? 'danger' : 'primary'}`}
+                          classNames={{
+                            base: ' w-full h-7 my-2 ',
+                            label: [
+                              'text-xs  text-white focus-within:text-white'
+                            ],
+
+                            inputWrapper: [
+                              'border border-slate-500/50',
+                              'text-white',
+                              'bg-transparent',
+                              'data-[hover=true]:bg-[#282551]',
+                              'data-[hover=true]:border-[#4435CF]',
+                              'focus-within:!bg-[#282551]',
+                              'focus-within:border-[#4435CF] border-2'
+                            ],
+                            innerWrapper: [
+                              'bg-transparent',
+                              'boder-2 border-blue-100'
+                            ]
+                          }}
+                          type='text'
+                          {...register('firstName')}
+                        />
+                        {errors.firstName && (
+                          <p
+                            className='flex flex-col text-red-500'
+                            style={{ color: 'red' }}
+                          >
+                            {errors.firstName.message as string}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className='flex w-full flex-col gap-2'>
+                        <Input
+                          label='Lastname'
+                          labelPlacement='outside'
+                          variant='bordered'
+                          color={`${errors.lastName ? 'danger' : 'primary'}`}
+                          classNames={{
+                            base: ' w-full h-7 my-2 ',
+                            label: [
+                              'text-xs  text-white focus-within:text-white'
+                            ],
+
+                            inputWrapper: [
+                              'border border-slate-500/50',
+                              'text-white',
+                              'bg-transparent',
+                              'data-[hover=true]:bg-[#282551]',
+                              'data-[hover=true]:border-[#4435CF]',
+                              'focus-within:!bg-[#282551]',
+                              'focus-within:border-[#4435CF] border-2'
+                            ],
+                            innerWrapper: [
+                              'bg-transparent',
+                              'boder-2 border-blue-100'
+                            ]
+                          }}
+                          type='text'
+                          {...register('lastName')}
+                        />
+                        {errors.lastName && (
+                          <p className='flex flex-col text-red-500'>
+                            {errors.lastName.message as string}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <Input
+                      label='Email'
+                      labelPlacement='outside'
+                      variant='bordered'
+                      color={`${errors.email ? 'danger' : 'primary'}`}
+                      classNames={{
+                        base: ' w-full h-7 my-2 ',
+                        label: ['text-xs  text-white focus-within:text-white'],
+
+                        inputWrapper: [
+                          'border border-slate-500/50',
+                          'text-white',
+                          'bg-transparent',
+                          'data-[hover=true]:bg-[#282551]',
+                          'data-[hover=true]:border-[#4435CF]',
+                          'focus-within:!bg-[#282551]',
+                          'focus-within:border-[#4435CF] border-2'
+                        ],
+                        innerWrapper: [
+                          'bg-transparent',
+                          'boder-2 border-blue-100'
+                        ]
+                      }}
+                      type='email'
+                      {...register('email')}
+                    />
+                    {errors.email && (
+                      <p className='text-xs text-red-500'>
+                        {errors.email.message as string}
+                      </p>
+                    )}
+                    <div className='flex justify-between gap-2 text-xs'>
+                      <div className='flex w-full flex-col gap-2'>
+                        <Input
+                          type={isVisible ? 'text' : 'password'}
+                          label='Password'
+                          labelPlacement='outside'
+                          variant='bordered'
+                          color={`${errors.password ? 'danger' : 'primary'}`}
+                          endContent={
+                            <button
+                              className='focus:outline-none'
+                              type='button'
+                              onClick={toggleVisibility}
+                            >
+                              {isVisible ? (
+                                <IoEyeOffOutline className='pointer-events-none text-2xl text-default-400' />
+                              ) : (
+                                <MdOutlineRemoveRedEye className='pointer-events-none text-2xl text-default-400' />
+                              )}
+                            </button>
+                          }
+                          classNames={{
+                            base: ' w-full h-7 my-2 ',
+                            label: [
+                              'text-xs  text-white focus-within:text-white'
+                            ],
+
+                            inputWrapper: [
+                              'border border-slate-500/50',
+                              'text-white',
+                              'bg-transparent',
+                              'data-[hover=true]:bg-[#282551]',
+                              'data-[hover=true]:border-[#4435CF]',
+                              'focus-within:!bg-[#282551]',
+                              'focus-within:border-[#4435CF] border-2'
+                            ],
+                            innerWrapper: [
+                              'bg-transparent',
+                              'boder-2 border-blue-100'
+                            ]
+                          }}
+                          {...register('password')}
+                        />
+                        {errors.password && (
+                          <p className='text-red-500'>
+                            {errors.password.message as string}
+                          </p>
+                        )}
+                      </div>
+                      <div className='flex w-full flex-col gap-2'>
+                        <Input
+                          type={isVisibility ? 'text' : 'password'}
+                          label='confirmPassword'
+                          labelPlacement='outside'
+                          variant='bordered'
+                          color={`${
+                            errors.confirmPassword ? 'danger' : 'primary'
+                          }`}
+                          endContent={
+                            <button
+                              className='focus:outline-none'
+                              type='button'
+                              onClick={toggleVisible}
+                            >
+                              {isVisibility ? (
+                                <IoEyeOffOutline className='pointer-events-none text-2xl text-default-400' />
+                              ) : (
+                                <MdOutlineRemoveRedEye className='pointer-events-none text-2xl text-default-400' />
+                              )}
+                            </button>
+                          }
+                          classNames={{
+                            base: ' w-full h-7 my-2 ',
+                            label: [
+                              'text-xs  text-white focus-within:text-white'
+                            ],
+
+                            inputWrapper: [
+                              'border border-slate-500/50',
+                              'text-white',
+                              'bg-transparent',
+                              'data-[hover=true]:bg-[#282551]',
+                              'data-[hover=true]:border-[#4435CF]',
+                              'focus-within:!bg-[#282551]',
+                              'focus-within:border-[#4435CF] border-2'
+                            ],
+                            innerWrapper: [
+                              'bg-transparent',
+                              'boder-2 border-blue-100'
+                            ]
+                          }}
+                          {...register('confirmPassword')}
+                        />
+                        {errors.confirmPassword && (
+                          <p className='text-red-500'>
+                            {errors.confirmPassword.message as string}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    <div className='flex justify-between'>
+                      <div className='flex w-full items-center gap-3'>
+                        <p className='text-[14px] text-slate-400'>
+                          Already have an account?{' '}
+                        </p>
+                        <span
+                          className='cursor-pointer rounded-full p-2 text-[14px] text-green-300 hover:bg-slate-400'
+                          onClick={() => router.push('/')}
+                        >
+                          login
+                        </span>
+                      </div>
+                      <Button
+                        color='primary'
+                        className='mt-2 text-end'
+                        type='submit'
+                        onClick={() => setCheckDetails(true)}
+                      >
+                        submit
+                      </Button>
+                    </div>
+                  </form>
+                </div>
+              )
+            case '1':
+              return (
+                <div className='flex w-[42%] flex-col gap-4 rounded-xl border-2 border-[#323B45] bg-slate-800/70 p-4  text-white shadow-md'>
+                  <p className='text-center text-[16px]'>Enter OTP</p>
+                  <Input
+                    name='otp'
+                    label='OTP'
+                    labelPlacement='outside'
+                    type='text'
+                    onChange={handleOtpChange}
+                    color={`${errors.password ? 'danger' : 'primary'}`}
+                    classNames={{
+                      base: ' w-full h-7 my-2 ',
+                      label: ['text-xs  text-white focus-within:text-white'],
+
+                      inputWrapper: [
+                        'border border-slate-500/50',
+                        'text-white',
+                        'bg-transparent',
+                        'data-[hover=true]:bg-[#282551]',
+                        'data-[hover=true]:border-[#4435CF]',
+                        'focus-within:!bg-[#282551]',
+                        'focus-within:border-[#4435CF] border-2'
+                      ],
+                      innerWrapper: [
+                        'bg-transparent',
+                        'boder-2 border-blue-100'
+                      ]
+                    }}
+                  />
+                  <Button
+                    color='primary'
+                    className='mt-2 text-end'
+                    onClick={verifyOtpandPostUser}
+                  >
+                    Submit
+                  </Button>
+                </div>
+              )
+          }
+        })()}
+      </div>
+    </div>
+  )
+}
+
+export default RegisterForm

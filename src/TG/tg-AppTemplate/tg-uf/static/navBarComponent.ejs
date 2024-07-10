@@ -1,0 +1,33 @@
+import { Link, LinkProps, Navbar,NavbarBrand,NavbarContent,NavbarContentProps,NavbarItem, NavbarItemProps, NavbarProps } from "@nextui-org/react";
+import React from "react";
+export const NavBarComponent :React.FC<NavbarProps> = ({children,classNames,height,isBordered,isBlurred,isMenuOpen}) => {
+    return (
+        <Navbar classNames={classNames} height={height} isBordered={isBordered} isBlurred={isBlurred} isMenuOpen={isMenuOpen}>{children}</Navbar> 
+    )
+}
+
+export const NavbarBrandComponent = ({children}:any) => {
+    return (
+        <NavbarBrand>
+           {children}
+        </NavbarBrand>
+    )
+}
+
+export const NavbarContentComponent:React.FC<NavbarContentProps> = ({justify,children}) => {
+    return (
+       <NavbarContent justify={justify}>{children}</NavbarContent>
+    )   
+}
+
+export const NavbarItemComponent:React.FC<NavbarItemProps> = ({children,isActive,className}) => {
+    return (
+        <NavbarItem className={className} isActive={isActive}>{children}</NavbarItem>
+    )
+}
+
+export const LinkComponent:React.FC<LinkProps> = ({size,isDisabled,onPress,href,children}) => {
+    return (
+        <Link href={href} size={size} isDisabled={isDisabled} onPress={onPress}>{children}</Link>
+    )
+}

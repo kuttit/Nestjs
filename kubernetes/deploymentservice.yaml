@@ -1,0 +1,49 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nestjs-app
+  namespace: nestjs
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: nestjs-app
+  template:
+    metadata:
+      labels:
+        app: nestjs-app
+      annotations:
+        sidecar.opentelemetry.io/inject: "true"
+        instrumentation.opentelemetry.io/inject-nodejs: "true"
+    spec:
+      containers:
+      - name: nest-app-backend-container
+        image: 192.168.2.164:5000/torus9x-nest-app:replaceImageTag
+        ports:
+        - containerPort: 3002
+        env:
+        - name: redis_host
+          value: "192.168.2.165"
+        - name: redis_port
+          value: "8085"
+        - name: OTEL_EXPORTER_OTLP_ENDPOINT
+          value: "http://l92.168.2.174:4317"
+        - name: OTLP_SERVICENAME
+          value: "nestjs-app"
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nestjs-app
+  namespace: nestjs
+  labels:
+    app: nestjs-app
+spec:
+  type: NodePort
+  ports:
+  - port: 80
+    targetPort: 3002
+    nodePort: 30002
+  selector:
+    app: nestjs-app

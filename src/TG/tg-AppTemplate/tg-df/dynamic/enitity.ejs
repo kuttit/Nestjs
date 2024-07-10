@@ -1,0 +1,31 @@
+import { <%= relation %> } from '@prisma/client';
+import { ApiProperty } from '@nestjs/swagger';
+
+export class  <%= relation.toLowerCase() %>Entity implements  <%= relation %> {
+    <%_ data.forEach((col)=> {_%>
+      <%_ if(col.cname ===''){ _%>
+      <%_ } else { _%>
+        @ApiProperty()
+        <%= col.cname.toLowerCase() %>:<% if (col.dataType.selectedValue === 'Int' && col.length !==''){ %>any<% } else if (col.dataType.selectedValue === 'String?'){ %>string<% } else if (col.dataType.selectedValue === 'DateTime' || col.dataType.selectedValue === 'DateTime?'){ %>Date<% } else if(col.dataType.selectedValue === 'Int') {%> number<%_ } else {%> <%= col.dataType.selectedValue.toLowerCase() %><%_ } _%>;
+      <%_ } _%>
+   <%_ }) _%>
+        @ApiProperty()
+        created_date: Date;
+        @ApiProperty()
+        created_by: string;
+        @ApiProperty()
+        modified_date: Date;
+        @ApiProperty()
+        modified_by: string;
+        @ApiProperty()
+        eligibleStatus: string;
+        @ApiProperty()
+        eligibleProcessStatus: string;
+        @ApiProperty()
+        finalStatus: string;
+        @ApiProperty()
+        finalProcessStatus: string;
+    }
+      
+   
+  export { <%= relation %> };

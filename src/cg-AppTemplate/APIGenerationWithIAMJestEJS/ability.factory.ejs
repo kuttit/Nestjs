@@ -1,0 +1,113 @@
+import { Injectable } from '@nestjs/common';
+import {
+  AbilityBuilder,
+  Ability,
+  InferSubjects,
+  AbilityClass,
+  ExtractSubjectType,
+} from '@casl/ability';
+<%_ const uniqueTablenames = new Set(); _%> 
+<%_ for(let i = 0;i < data.users.length;i++){ _%>
+<%_for(let j = 0;j < data.users[i].tenantDetails.length;j++){ _%>
+<%_for(let k = 0;k < data.users[i].tenantDetails[j].appGroupDetails.length;k++){ _%>
+<%_for(let l = 0;l<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails.length;l++){ _%>
+<%_for(let m = 0;m<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails.length;m++){ _%>
+<%_for(let n = 0;n<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails[m].policy.Statement.length;n++){ _%>
+<%_ const parts = data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails[m].policy.Statement[n].resource.split(':') _%>
+<%_ const [Fabric, type, tablename] = parts; _%>  
+<%_ if (Fabric === 'DF' && !uniqueTablenames.has(tablename)) { _%>
+import {   <%= tablename.toLowerCase()  %>Entity  } from '../<%= tablename  %>/entity/<%= tablename  %>.entity';
+<%_ uniqueTablenames.add(tablename); _%>   
+<%_} _%>
+<%_} _%>  
+<%_} _%>
+<%_} _%>
+<%_} _%>
+<%_} _%>
+<%_} _%>
+
+
+ 
+export enum Action {
+  Manage = 'manage',
+  Create = 'create',
+  Read = 'read',
+  Update = 'update',
+  Delete = 'delete',
+}
+
+<%_ const uniqueTablenames1 = new Set(); _%> 
+export type Subjects = | InferSubjects< <%_ for(let i = 0;i < data.users.length;i++){ _%>
+  <%_for(let j = 0;j < data.users[i].tenantDetails.length;j++){ _%>
+  <%_for(let k = 0;k < data.users[i].tenantDetails[j].appGroupDetails.length;k++){ _%>
+  <%_for(let l = 0;l<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails.length;l++){ _%>
+  <%_for(let m = 0;m<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails.length;m++){ _%>
+  <%_for(let n = 0;n<data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails[m].policy.Statement.length;n++){ _%>
+  <%_ const parts1 = data.users[i].tenantDetails[j].appGroupDetails[k].appDetails[l].rolePolicyDetails[m].policy.Statement[n].resource.split(':') _%>
+  <%_ const [Fabric1, type1, tablename1] = parts1; _%>  
+   <%_ if (Fabric1 === 'DF' && !uniqueTablenames1.has(tablename1)) { _%>
+    | typeof <%= tablename1.toLowerCase()  %>Entity
+   <%_ uniqueTablenames1.add(tablename1); _%>   
+  <%_} _%>
+  <%_} _%>  
+  <%_} _%>
+  <%_} _%>
+  <%_} _%>
+  <%_} _%>
+  <%_} _%> >  | 'all';
+ 
+export type AppAbility = Ability<[Action, Subjects]>;
+ 
+@Injectable()
+export class AbilityFactory {
+  defineAbility(tenent: string, appGroup: string, appName: string, userRole: any   ) {
+    const { can, cannot, build } = new AbilityBuilder(
+      Ability as AbilityClass<AppAbility>,
+    );
+    
+    <%_for(let i = 0;i < relation.length;i++){  _%>
+     if(tenent === '<%= relation[i].tenantName %>' && appGroup === '<%= relation[i].appGroupName %>' && appName === '<%= relation[i].appName %>' && userRole === '<%= relation[i].roleName %>'){
+      <%_for(let j = 0;j < relation[i].can.length;j++){  _%>
+      <%_if(relation[i].can[j] === '*')  {_%>
+        can(Action.Manage,<%= relation[i].resource.toLowerCase() %>Entity);    
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'POST')  {_%>
+        can(Action.Create,<%= relation[i].resource.toLowerCase() %>Entity);     
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'GET')  {_%>
+        can(Action.Read,<%= relation[i].resource.toLowerCase() %>Entity);     
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'UPDATE')  {_%>
+        can(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);     
+      <%_} _%>
+      <%_if(relation[i].can[j] === 'DETETE')  {_%>
+        can(Action.Delete,<%= relation[i].resource.toLowerCase() %>Entity);     
+      <%_} _%>
+      <%_} _%>
+    <%_for(let j = 0;j < relation[i].can.length;j++){  _%>
+      <%_if(relation[i].cannot[j] === '*')  {_%>
+        cannot(Action.Manage,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+      <%_if(relation[i].cannot[j] === 'POST')  {_%>
+        cannot(Action.Create,<%= relation[i].resource.toLowerCase() %>Entity); 
+      <%_} _%>  
+      <%_if(relation[i].cannot[j] === 'GET')  {_%>
+        cannot(Action.Read,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+      <%_if(relation[i].cannot[j] === 'UPDATE')  {_%>
+        cannot(Action.Update,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>
+      <%_if(relation[i].cannot[j] === 'DELETE')  {_%>
+        cannot(Action.Delete,<%= relation[i].resource.toLowerCase() %>Entity);
+      <%_} _%>   
+    <%_} _%>  
+      }   
+     <%_} _%>
+    
+ 
+    return build({
+      detectSubjectType: (item) =>
+        item.constructor as ExtractSubjectType<Subjects>,
+    });
+  }
+}

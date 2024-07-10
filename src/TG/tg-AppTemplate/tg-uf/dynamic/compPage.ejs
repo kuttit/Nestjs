@@ -1,0 +1,114 @@
+'use client'
+<%_ for (let i = 0; i < data.length; i++) { _%>    
+    <%_ if ( relation[data[i]].nodeType === 'group') { _%>
+    import Group<%= relation[data[i]].nodeName  %>  from "./Group<%= relation[data[i]].nodeName  %>/Group<%= relation[data[i]].nodeName  %>";
+      <%_ } _%>
+<%_ } _%>
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
+    export default function <%= data1%>() {
+      <%_ if(data2 !== '') {_%>
+      const [nodeDetails,setNodeDetails] = useState(null)
+  const [check,setCheck]=useState(false)
+  useEffect(() => {
+    const cookies = document.cookie.split(';')
+    const data = cookies.find(Cookie => Cookie.trim().startsWith('orpSecurity='))
+    const value: string | any = data?.split('=')[1]
+    const finalData = JSON.parse(value)
+    for(let i=0;i<finalData.length;i++){
+      for(let j=0;j<finalData[i].Components.length;j++){
+
+        if(finalData[i].Components[j].componentName==  <%_ for (let i = 0; i < data.length; i++) { _%><%_ if ( relation[data[i]].nodeType === 'group') { _%>"<%= relation[data[i]].nodeName  %>"<%_}_%><%_}_%>){
+          setCheck(true)
+        }
+      }
+      
+    }
+  }, [])
+      const handleFormData = async () => {
+        const cookies = document.cookie.split('; ')
+        const cookie: any = cookies.find(cookie => cookie.trim().startsWith('token='))
+        const token = cookie.split('=')[1]
+        if (token) {
+
+          let key='<%= data2[0]%>:';
+          let keyParts = key.split(':');
+          let artifact = keyParts[4]
+
+          if(key==""){
+            key="ejs default key"
+          }
+
+          try {
+        const res = await axios.post(
+          'http://localhost:3002/pe/peStream',
+          {
+            key: key,
+            sfkey: '<%= data2[1]%>'
+          },
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        )
+        if (Object.keys(res.data).includes('result')) {
+          if (res.data.statusCode == 201) {
+            if (res.data.result.url) {
+              setNodeDetails(res.data.result)
+
+              toast.success('Data send to process engine', {
+                autoClose: 2000
+              })
+            } else if( artifact === 'SSH'){
+              setNodeDetails(res.data.result)
+              toast.success('Data  send to process engine', {
+                autoClose: 2000
+              })
+            }else {
+              toast.error('Data not send to process engine', {
+                autoClose: 2000
+              })
+            }
+          } else {
+            toast.error('Error occured', {
+              autoClose: 2000
+            })
+          }
+        } else {
+          toast.error(res.data[0].error, {
+            autoClose: 2000
+          })
+        }
+      } catch (err: any) {
+        toast.error(err?.message, {
+          autoClose: 2000
+        })
+      }
+      }else{
+        toast.error('token not found')
+      }
+      }
+      useEffect(() => {
+        const peData = localStorage.getItem('peData')    
+        if (peData) {    
+          const updatedData = JSON.parse(peData)    
+          setNodeDetails(updatedData)    
+        } else {    
+          handleFormData()    
+        }    
+      }, [])
+     <%_ } _%>
+      return <>
+      <%_ for (let i = 0; i < data.length; i++) { _%>
+      <%_ if ( relation[data[i]].nodeType === 'group') { _%>
+        {
+          check && <Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%> nodeDetails={nodeDetails}<%_ } _%> />
+        //< Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%>nodeDetails={nodeDetails} <%_ } _%> />
+      <%_ } _%>
+      <%_ } _%>
+    }
+      </>
+  }
+    

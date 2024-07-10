@@ -1,0 +1,10 @@
+import { Module } from '@nestjs/common';
+<%_ data.forEach((table) => {_%>
+import { <%= table.tname %>Module } from './<%= table.tname %>/<%= table.tname %>.module';   
+<%})%>
+
+@Module({
+  imports: [<%_ for (var i=0; i < data.length; i++) { _%><%= data[i].tname %>Module<%_ if (i !== data.length-1) { _%>,<% }} %>],
+  controllers:[],
+})
+export class AppModule {}

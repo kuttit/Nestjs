@@ -1,0 +1,66 @@
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { AbilityFactory } from './ability.factory';
+import { CHECK_ABILITY, RequiredRule } from './ability.decorator';
+import { ForbiddenError } from '@casl/ability';
+import { JwtServices } from 'src/jwt.service';
+
+@Injectable()
+export class AbilitiesGuard implements CanActivate {
+  constructor(
+    private reflector: Reflector,
+    private caslabilityFactory: AbilityFactory,
+    private readonly jwtService:JwtServices
+  ) { }
+
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const rules =
+      this.reflector.get<RequiredRule[]>(CHECK_ABILITY, context.getHandler()) ||
+      [];
+
+    const request = context.switchToHttp().getRequest();
+    const token = request.headers.authorization.split(' ')[1];
+    const decodedToken = this.jwtService.decodeToken(token);
+    
+    const details = request.headers;
+    const iss: string = decodedToken.iss;
+    const issParts: string[] = iss.split('/');
+    const tenant = issParts[4];
+    const appGroup :any =[];
+    const appName = decodedToken.azp;
+    const userRoles :string[] = [];
+    const roles = decodedToken.realm_access.roles;
+    for (let i = 0; i < roles.length; i++) {
+      const role =roles[i];
+      const userRole =role.split('-');
+      if(userRole[1])
+      userRoles.push(userRole[1]);
+      if(userRole[0])
+      appGroup.push(userRole[0]);
+    }
+
+    const ability = this.caslabilityFactory.defineAbility(tenant, appGroup, appName, userRoles);
+
+    if(!tenant && !appGroup && !appName && !userRoles){
+      return false
+    }
+    else
+    {
+    try {
+      rules.forEach((rule) => {
+        ForbiddenError.from(ability).throwUnlessCan(rule.action, rule.subject)
+      });
+      return true;
+    } catch (error) {
+      if (error instanceof ForbiddenError) {
+        throw new ForbiddenException(error.message);
+      }
+    }
+  }
+}
+}

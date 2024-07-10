@@ -1,0 +1,47 @@
+
+
+
+import { Button, Label, TextInput } from "flowbite-react";
+import React, { useState } from "react";
+
+const <%= data.tname %> = () => {
+  const [formvalue, setFormVal] = useState({});
+  async function post() {
+    const res = await fetch("<%= relation %>/<%= data.tname.toLowerCase() %>", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(formvalue),
+    });
+    console.log(res);
+  }
+  
+  const handleChange = (e: any) => {
+    if (e.target.type == 'number') {
+      setFormVal((prev) => ({
+        ...prev,
+        [e.target.id]: Number(e.target.value),
+      }));
+    } else {
+      setFormVal((prev) => ({ ...prev, [e.target.id]: e.target.value }));
+    }
+  };
+  console.log(formvalue);
+  return (
+    <form onSubmit={() => post()}>
+   <%_ for (let i = 0; i < data.columns.length; i++) { _%>
+    <%_ if (data.columns[i].contraints.includes('@default') || data.columns[i].contraints.includes('@updatedAt')) { _%>
+    <%_} else {_%>   
+    <div className="mb-2 block">
+        <Label htmlFor="<%= data.columns[i].cname %>" value="<%= data.columns[i].labelName %>" />
+        <TextInput onChange={handleChange} id="<%= data.columns[i].cname %>" type="<%_ if (data.columns[i].datatype === 'Int') { _%>number<%_ } else { _%>text<%_ } _%>"  sizing="sm" <%_ if (data.columns[i].datatype.includes('?')) { _%> <%_ } else { _%> required={true}<%_ } _%>/>
+    </div>
+    <%_} _%>
+    <%_ }  _%>
+    <Button type="submit" >submit</Button>
+  </form>
+  );
+};
+
+export default <%= data.tname %>;

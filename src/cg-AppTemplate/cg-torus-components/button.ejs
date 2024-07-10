@@ -1,0 +1,198 @@
+'use client'
+import React from 'react'
+import ButtonComponent from '../components/button'
+import axios from 'axios'
+import { InfoMsg } from '../torusStaticHandlers/infoMsgHandler'
+<%_ for(let i=0;i<data.props.length;i++){_%>
+<%_ if(data.props[i].name === 'isIconOnly' && data.props[i].value){_%>
+import { <%= data.props[i].icon  %> } from 'react-icons/fa'
+<%_ } _%>
+<%_ } _%>
+const Button<%= data.label %> =  ({ user<%_ if(data1[1] !== '') {_%>, nodeDetails <%_ } _%>}: { user: any<%_ if(data1[1] !== '') {_%>, nodeDetails: any <%_ } _%>}) => {
+ <%_if(data1[2] !== '' && data1[3] !== '' && data1[1] !== '' ){_%>
+  const token:any = localStorage.getItem('token')
+  const accessToken=JSON.parse(token)
+  const sessionInfo:any = {
+    accessToken: accessToken.access_token,
+    authToken: ''
+  }
+  const HandlerParams:any = '<%= data1[0]  %>:Events:Group<%= data2.nodeProperties.nodeName %>:Button<%= data.label %>:v1'
+  let event:any = '<%= data1[2][1].name %>' 
+  
+  const handleClick = async () => {
+    const body:any = {
+      key:HandlerParams,
+      sessionInfo:sessionInfo,
+      event:event,
+      sfkey:'<%= data1[4] %>',
+      pKey:nodeDetails?.key,
+      nodeId:nodeDetails?.nodeId,
+      nodeName:nodeDetails?.nodeName,
+      mode : nodeDetails?.mode,
+      upId : nodeDetails?.upId
+    }
+    const HandlerData:any = {
+      key:HandlerParams,
+      value:{...user },
+      path:'params.request'
+    }
+    <%_ let eventSet = new Set(); _%>
+    <%_ let eventObj = data1[3] _%>
+    <%_ for (let i = 0; i < data1[2].length; i++) { _%>
+    <%_ let eventId = data1[2][i].id _%>
+    <%_ if (eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'saveHandler' && !eventObj[eventId].parentResponse) { _%>
+      await axios.post(`http://localhost:3002/UF/uploadHandlerData`,{key:HandlerParams},{
+        headers: {
+          'Content-Type': 'application/json'
+        },
+      }
+    )
+      await axios.post(`http://localhost:3002/UF/setSaveHandlerData`,HandlerData,{
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        }
+      )
+      const cookies = document.cookie.split(';')
+      const data = cookies.find(Cookie =>
+        Cookie.trim().startsWith('token=')
+      )
+      const token: string | any = data?.split('=')[1]
+      console.log(token);
+ 
+      const res<%= eventObj[eventId].sequence.replace(/\./g, "")  %> = await axios.post(`http://localhost:3002/pe/save`,body,{
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          },
+        }
+      )
+      <%_ let response1 = eventId+'.1' _%>
+      <%_ let response2 = eventId+'.2' _%>
+      <%_ if(eventObj[response1]) {_%>
+      <%_ if ( eventObj[response1].type === 'responseNode' ) { _%>
+      <%_ let parentResponse = response1+'.1' _%>
+     <%_ eventObj[parentResponse]["parentResponse"] = eventObj[response1].name _%>
+     <%_ eventObj[parentResponse]["parentSequence"] = eventObj[eventId].sequence _%>
+      <%_ } _%>
+      <%_ } _%>
+      <%_ if(eventObj[response2]) {_%>
+        <%_ if ( eventObj[response2].type === 'responseNode' ) { _%>
+        <% let parentResponse = response2+'.1' %>
+       <%_ eventObj[parentResponse]["parentResponse"] = eventObj[response2].name _%>
+       <%_ eventObj[parentResponse]["parentSequence"] = eventObj[eventId].sequence _%>
+        <%_ } _%>
+        <%_ } _%>
+      <%_ } else if(eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'saveHandler' && eventObj[eventId].parentResponse === 'success') {_%>
+      if(res<%= eventObj[eventId].parentSequence.replace(/\./g, "")  %>.data.status ===  201){  
+        await axios.post(`http://localhost:3002/UF/uploadHandlerData`,{key:HandlerParams},{
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        }
+      )
+        await axios.post(`http://localhost:3002/UF/setSaveHandlerData`,HandlerData,{
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        }
+      )
+      const res<%= eventObj[eventId].sequence.replace(/\./g, "")  %> = await axios.post(`http://localhost:3002/pe/save`,body,{
+          headers: {
+            'Content-Type': 'application/json',
+            'role':'Admin'
+          },
+        }
+      )
+      }
+      <%_ } else if(eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'saveHandler' && eventObj[eventId].parentResponse === 'fail'){_%>
+      if(res<%= eventObj[eventId].parentSequence.replace(/\./g, "")  %>.data.status !==  201){  
+        await axios.post(`http://localhost:3002/UF/uploadHandlerData`,{key:HandlerParams},{
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        }
+      )
+        await axios.post(`http://localhost:3002/UF/setSaveHandlerData`,HandlerData,{
+          headers: {
+            'Content-Type': 'application/json'
+          },
+        }
+      )
+      const res<%= eventObj[eventId].sequence.replace(/\./g, "")  %> = await axios.post(`http://localhost:3002/pe/save`,body,{
+          headers: {
+            'Content-Type': 'application/json',
+            'role':'Admin'
+          },
+        }
+      )
+      }
+        <%_ } _%>
+        <%_ if (eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'infoMsg' && !eventObj[eventId].parentResponse) { _%>
+          const res<%= eventObj[eventId].sequence.replace(/\./g, "")  %> =InfoMsg("Process Success","success")
+          <%_ let response1 = eventId+'.1' _%>
+          <%_ let response2 = eventId+'.2' _%>
+          <%_ if(eventObj[response1]) {_%>
+          <%_ if ( eventObj[response1].type === 'responseNode' ) { _%>
+          <%_ let parentResponse = response1+'.1' _%>
+         <%_ eventObj[parentResponse]["parentResponse"] = eventObj[response1].name _%>
+         <%_ eventObj[parentResponse]["parentSequence"] = eventObj[eventId].sequence _%>
+          <%_ }  _%>
+          <%_ }  if(eventObj[response2]) {_%>
+            <%_ if ( eventObj[response2].type === 'responseNode' ) { _%>
+              <%_ let parentResponse = response2+'.1' _%>
+             <%_ eventObj[parentResponse]["parentResponse"] = eventObj[response2].name _%>
+             <%_ eventObj[parentResponse]["parentSequence"] = eventObj[eventId].sequence _%>
+              <%_ }  _%>
+          <%_ }  _%>
+          <%_ } else if(eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'infoMsg' && eventObj[eventId].parentResponse === 'success') {_%>
+          if(res<%= eventObj[eventId].parentSequence.replace(/\./g, "")  %>.data.data.status ===  201){  
+          const res<%=eventObj[eventId].sequence.replace(/\./g, "") %> = InfoMsg("Process Success","success")
+          }
+          <%_ } else if(eventObj[eventId].type === 'handlerNode' && eventObj[eventId].name === 'infoMsg' && eventObj[eventId].parentResponse === 'fail'){_%>
+          if(res<%= eventObj[eventId].parentSequence.replace(/\./g, "")  %>.data.data.status !==  201){  
+            const res<%=eventObj[eventId].sequence.replace(/\./g, "") %> = InfoMsg("Process Failed","error")
+          }
+            <%_ } _%>
+        <%_ } _%>
+  }
+  <%_}else{ _%> 
+    const handleClick = () => {
+      console.log('Clicked');
+    }
+    <%_}_%>
+  return (
+  <%_ let height = (relation.height/data2.nodes.height)*100  _%>  
+  <%_ let width = (relation.width/data2.nodes.width)*100  _%>
+  <%_ let left = (relation.position.x/data2.nodes.width)*100 _%>
+  <%_ let top = (relation.position.y/data2.nodes.height)*100  _%>
+  <%_ let mdHeight = height - (height*0.1)  _%>  
+  <%_ let mdWidth = width - (width*0.1)  _%>
+  <%_ let mdLeft = left - (left*0.1)  _%>
+  <%_ let mdTop = top - (top*0.1)  _%>
+  <%_ let smHeight = mdHeight - (mdHeight*0.1)  _%>  
+  <%_ let smWidth = mdWidth - (mdWidth*0.1)  _%>
+  <%_ let smLeft = mdLeft - (mdLeft*0.1)  _%>
+  <%_ let smTop = mdTop - (mdTop*0.1)  _%>
+  <%_ let xlHeight = height + (height*0.1)  _%>  
+  <%_ let xlWidth = width + (width*0.1)  _%>
+  <%_ let xlLeft = left + (left*0.1)  _%>
+  <%_ let xlTop = top + (top*0.1)  _%>
+      <div className='container' > 
+      <ButtonComponent className='absolute left-[<%= left %>%] top-[<%= top %>%] h-[<%= height %>%] w-[<%= width %>%] 
+        sm:left-[<%= smLeft %>%] sm:top-[<%= smTop %>%] sm:h-[<%= smHeight %>%] sm:w-[<%= smWidth %>%] 
+        md:left-[<%= mdLeft %>%] md:top-[<%= mdTop %>%] md:h-[<%= mdHeight %>%] md:w-[<%= mdWidth %>%] 
+        xl:left-[<%= xlLeft %>%] xl:top-[<%= xlTop %>%] xl:h-[<%= xlHeight %>%] xl:w-[<%= xlWidth %>%] ' <% ' ' %><%_ for(let i=0;i<data.props.length;i++){_%> <%_ if(data.props[i].name === 'isDisabled' && data.props[i].value ){_%> isDisabled={true} <%_ } if(data.props[i].name === 'size' && data.props[i].value !== ""){ _%>  <% ' ' %> size='<%= data.props[i].value  %>'    <%_ }  if(data.props[i].name === 'isIconOnly' && data.props[i].value ){ _%> <% ' ' %> isIconOnly={true} <%_ } _%>    <%_ } _%> 
+      <% ' ' %> onClick={handleClick}>
+        <%_ for(let i=0;i<data.props.length;i++){_%>
+        <%_ if( data.props[i].name === 'isIconOnly' && data.props[i].value !== "true"){ _%>
+        <%= data.label  %>
+        <%_ } else if(data.props[i].name === 'isIconOnly' && data.props[i].value === "true"){_%>
+          < <%= data.props[i].icon %>/>
+        <%_ } _%>
+        <%_ } _%>
+      </ButtonComponent>
+      </div>
+  )
+}
+export default Button<%= data.label %>
