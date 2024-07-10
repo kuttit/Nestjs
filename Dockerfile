@@ -1,12 +1,25 @@
 FROM node:20 AS build
 
-# Upgrade npm
-RUN npm i -g npm
+RUN npm install -g pnpm
 
 WORKDIR /usr/src/app
-COPY package*.json pnpm-lock.yaml ./
+
+COPY package*.json pnpm-lock.yaml* ./
+
 RUN pnpm install
+
 COPY . .
-RUN pnpm build
+
+RUN pnpm run build
+
+# Stage 2: Production Stage
+
+FROM node:20
+
+WORKDIR /usr/src/app
+
+COPY --from=build /usr/src/app ./
+
 EXPOSE 3002
-CMD ["pnpm","start:dev"]
+
+CMD ["pnpm", "start:dev"]
