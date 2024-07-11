@@ -22,21 +22,6 @@ COPY . .
 # Build the application
 RUN pnpm run build
 
-# Stage 2: Create the final image
-FROM node:20 AS production
-
-# Install pnpm globally
-RUN npm install -g pnpm
-
-# Set the working directory
-WORKDIR /usr/src/app
-
-# Copy the build output and necessary files from the build stage
-COPY --from=build /usr/src/app/dist ./dist
-COPY --from=build /usr/src/app/package.json ./package.json
-COPY --from=build /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
-COPY --from=build /usr/src/app/node_modules ./node_modules
-
 # Expose the application port
 EXPOSE 3002
 
