@@ -23,7 +23,7 @@ COPY . .
 RUN pnpm run build
 
 # Stage 2: Create the final image
-FROM node:20-alpine AS production
+FROM node:20 AS production
 
 # Install pnpm globally
 RUN npm install -g pnpm
