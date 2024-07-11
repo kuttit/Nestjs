@@ -11,16 +11,16 @@ WORKDIR /usr/src/app
 COPY package*.json pnpm-lock.yaml* ./
 
 # Install dependencies using pnpm
-RUN pnpm install
+RUN npm install
 
 # Install additional dependencies
-RUN pnpm install @opentelemetry/resources @opentelemetry/semantic-conventions
+RUN npm install @opentelemetry/resources @opentelemetry/semantic-conventions
 
 # Copy the rest of the application code
 COPY . .
 
 # Build your application
-RUN pnpm run build
+RUN npm run build
 
 # Production stage to create a lightweight production image
 FROM node:20-alpine
