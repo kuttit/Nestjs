@@ -21,7 +21,7 @@ pipeline {
             steps {
                 git credentialsId: "${GITHUB_CREDENTIALS}", 
                     url: 'https://github.com/kuttit/Nestjs.git',
-                    branch: 'master'
+                    branch: 'main'
             }
         }
 
