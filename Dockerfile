@@ -26,4 +26,4 @@ RUN pnpm run build
 EXPOSE 3002
 
 # Command to run the application
-CMD ["pnpm", "start:prod"]
+CMD ["pnpm", "start:dev"]
