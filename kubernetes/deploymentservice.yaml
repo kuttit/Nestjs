@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
       - name: nest-app-backend-container
-        image: 192.168.2.164:5000/torus9x-nest-app:13
+        image: 192.168.2.164:5000/torus9x-nest-app:replaceImageTag
         ports:
         - containerPort: 3002
         env:
