@@ -1,10 +1,8 @@
 FROM node:20 AS build
 
 RUN npm install -g pnpm
-RUN pnpm cache clear --force
-
 WORKDIR  /usr/src/app
-COPY package*.json  pnpm-lock.yaml*  ./
+COPY package*.json pnpm-lock.yaml*  ./
 RUN pnpm install
 RUN npm install @opentelemetry/resources
 
