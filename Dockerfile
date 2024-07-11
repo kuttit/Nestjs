@@ -12,14 +12,6 @@ COPY . .
 
 RUN pnpm run build
 
-# Stage 2: Production Stage
-
-FROM node:20
-
-WORKDIR /usr/src/app
-
-COPY --from=build /usr/src/app ./
-
 EXPOSE 3002
 
 CMD ["pnpm", "start:dev"]
