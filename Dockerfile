@@ -1,5 +1,5 @@
-# Use the official Node.js 20 image from Docker Hub for the entire build process
-FROM node:20 AS builder
+# Stage 1: Build the application
+FROM node:20 AS build
 
 # Install pnpm globally
 RUN npm install -g pnpm
@@ -7,39 +7,38 @@ RUN npm install -g pnpm
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Copy package.json and pnpm-lock.yaml (if exists) for dependency installation
-COPY package*.json pnpm-lock.yaml* ./
+# Copy package.json and pnpm-lock.yaml
+COPY package.json pnpm-lock.yaml ./
 
-# Install dependencies using pnpm
-RUN npm install
+# Install dependencies
+RUN pnpm install
 
 # Install additional dependencies
-RUN npm install @opentelemetry/resources @opentelemetry/semantic-conventions
+RUN pnpm add @opentelemetry/resources @opentelemetry/semantic-conventions
 
 # Copy the rest of the application code
 COPY . .
 
-# Build your application
-RUN npm run build
+# Build the application
+RUN pnpm run build
 
-# Production stage to create a lightweight production image
-FROM node:20-alpine
+# Stage 2: Create the final image
+FROM node:20-alpine AS production
+
+# Install pnpm globally
+RUN npm install -g pnpm
 
 # Set the working directory
 WORKDIR /usr/src/app
 
-# Copy only the necessary files from the builder stage
-COPY --from=builder /usr/src/app/dist ./dist
-COPY package*.json pnpm-lock.yaml* ./
+# Copy the build output and necessary files from the build stage
+COPY --from=build /usr/src/app/dist ./dist
+COPY --from=build /usr/src/app/package.json ./package.json
+COPY --from=build /usr/src/app/pnpm-lock.yaml ./pnpm-lock.yaml
+COPY --from=build /usr/src/app/node_modules ./node_modules
 
-# Install production dependencies (excluding devDependencies)
-RUN npm install --only=production
-
-# Remove unnecessary files after installing production dependencies
-RUN rm package*.json pnpm-lock.yaml*
-
-# Expose port 3002 (adjust according to your application)
+# Expose the application port
 EXPOSE 3002
 
-# Command to run the application in production
-CMD ["node", "dist/main"]
+# Command to run the application
+CMD ["pnpm", "start:prod"]
