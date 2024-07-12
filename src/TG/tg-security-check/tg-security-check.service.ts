@@ -34,7 +34,6 @@ export class TgSecurityCheckService {
       ),
     );
     let compArray: string[] = [];
-    // console.log(userRoles,"userRoles");
 
     for (let i = 0; i < userMatrixJson.appGroupDetails.length; i++) {
       if (userMatrixJson.appGroupDetails[i].appGroupName === appGroupName) {
@@ -76,14 +75,8 @@ export class TgSecurityCheckService {
         }
       }
     }
-    // console.log(uniqueRoleName);
-
-    console.log(userRoles);
 
     for (let o = 0; o < userRoles.length; o++) {
-      // let flag:boolean=uniqueRoleName.has(userRoles[i])
-      // console.log(flag,"flag");
-      console.log(uniqueRoleName);
 
       if (uniqueRoleName.has(userRoles[o])) {
         for (let i = 0; i < userMatrixJson.appGroupDetails.length; i++) {
@@ -134,10 +127,6 @@ export class TgSecurityCheckService {
                             .rolePolicyDetails[k].UFpolicy[l]
                             .actionAllowed[0] === 'Y'
                         ) {
-                          console.log(
-                            userMatrixJson.appGroupDetails[i].appDetails[j]
-                              .rolePolicyDetails[k].UFpolicy[l].resource,
-                          );
 
                           compArray.push(
                             userMatrixJson.appGroupDetails[i].appDetails[j]
@@ -151,10 +140,6 @@ export class TgSecurityCheckService {
                             .rolePolicyDetails[k].UFpolicy[l]
                             .actionDenied[0] === 'N'
                         ) {
-                          console.log(
-                            userMatrixJson.appGroupDetails[i].appDetails[j]
-                              .rolePolicyDetails[k].UFpolicy[l].resource,
-                          );
 
                           compArray.push(
                             userMatrixJson.appGroupDetails[i].appDetails[j]
@@ -174,7 +159,6 @@ export class TgSecurityCheckService {
         }
       }
     }
-    console.log(compArray);
 
     return compArray;
   }
@@ -232,11 +216,9 @@ export class TgSecurityCheckService {
   }
 
   async SFCheckScreen(sfKey, token, screenName) {
-    console.log(screenName, 'screenNames');
 
     const keyParts: string[] = sfKey.split('-');
     const genScreens: string[] = screenName.split(',');
-    console.log(genScreens);
 
     const decodedToken: any = await this.jwtService.decodeToken(token);
     var orpSecurity: any = await this.tgCommonSevice.getSecurityJson(
@@ -275,7 +257,6 @@ export class TgSecurityCheckService {
             // uf.resource === keyParts[1] &&
             uf.SIFlag.selectedValue === 'A'
           ) {
-            console.log(1);
             
             var page = uf.resource.split(':')[3];
             var Components = [];
@@ -285,12 +266,10 @@ export class TgSecurityCheckService {
                   uf.actionAllowed.selectedValue.includes('*') ||
                   uf.actionAllowed.selectedValue.includes(componentDetails.resource)
                 ) {
-                  console.log(2);
                   if (
                     componentDetails.resourceType === 'Component' &&
                     componentDetails.SIFlag.selectedValue === 'A'
                   ) {
-                    console.log(3);
                     var componentName = '';
                     var control = [];
                     componentName = componentDetails.resource;
@@ -302,19 +281,8 @@ export class TgSecurityCheckService {
                             controlDetails.resource,
                           )
                         ) {
-                          console.log(4);
-                          if (
-                            controlDetails.resourceType === 'controls' &&
-                            ((controlDetails.SIFlag.selectedValue === 'A' &&
-                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                              (componentDetails.SIFlag.selectedValue === 'E' &&
-                                componentDetails.actionDenied.selectedValue.includes('N')))
-                          ) {
-                            console.log(controlDetails.resource, 'controlDetails');
-                            
                             control.push(controlDetails.resource);
                           }
-                        }
                       });
                     }
                     Components.push({
@@ -343,15 +311,7 @@ export class TgSecurityCheckService {
                             controlDetails.resource,
                           )
                         ) {
-                          if (
-                            controlDetails.resourceType === 'controls' &&
-                            ((controlDetails.SIFlag.selectedValue === 'A' &&
-                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                              (componentDetails.SIFlag.selectedValue === 'E' &&
-                                componentDetails.actionDenied.selectedValue.includes('N')))
-                          ) {
                             control.push(controlDetails.resource);
-                          }
                         }
                       });
                     }
@@ -398,15 +358,7 @@ export class TgSecurityCheckService {
                             controlDetails.resource,
                           )
                         ) {
-                          if (
-                            controlDetails.resourceType === 'controls' &&
-                            ((controlDetails.SIFlag.selectedValue === 'A' &&
-                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                              (componentDetails.SIFlag.selectedValue === 'E' &&
-                                componentDetails.actionDenied.selectedValue.includes('N')))
-                          ) {
                             control.push(controlDetails.resource);
-                          }
                         }
                       });
                     }
@@ -436,15 +388,7 @@ export class TgSecurityCheckService {
                             controlDetails.resource,
                           )
                         ) {
-                          if (
-                            controlDetails.resourceType === 'controls' &&
-                            ((controlDetails.SIFlag.selectedValue === 'A' &&
-                              controlDetails.actionAllowed.selectedValue.includes('Y')) ||
-                              (componentDetails.SIFlag.selectedValue === 'E' &&
-                                componentDetails.actionDenied.selectedValue.includes('N')))
-                          ) {
                             control.push(controlDetails.resource);
-                          }
                         }
                       });
                     }

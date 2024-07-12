@@ -30,7 +30,7 @@ import { QueueConsumer } from './queueConsumer';
     name: 'pfPaymentProcess'
   })],
   controllers: [TeController,LogController],
-  providers: [RedisService,CommonService, DebugService,NodeExecutionService, TeCommonService, TeService,SavehandlerService,JwtService,GoRuleEngine,QueueConsumer],
+  providers: [RedisService,CommonService, DebugService,NodeExecutionService, TeCommonService, TeService,SavehandlerService,JwtService,GoRuleEngine,QueueConsumer,TeService],
 })
 
 export class TeModule implements NestModule 

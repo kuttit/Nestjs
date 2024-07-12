@@ -23,6 +23,9 @@ import { useState } from 'react'
     <%_ if ( relation[data.controls[i]].elementInfo.component === 'DateInput') { _%>
     import DateInput<%= relation[data.controls[i]].elementInfo.label  %>  from "./DateInput<%= relation[data.controls[i]].elementInfo.label  %>";
     <%_ } _%> 
+    <%_ if ( relation[data.controls[i]].elementInfo.component === 'Dropdown') { _%>
+    import Dropdown<%= relation[data.controls[i]].elementInfo.label  %>  from "./Dropdown<%= relation[data.controls[i]].elementInfo.label  %>";
+    <%_ } _%> 
     <%_ } _%>
     <%_ } _%>
 
@@ -44,11 +47,11 @@ import { useState } from 'react'
           }
         }  
       return (
-      <%_ let height = data.height  _%>  
-      <%_ let width = data.width  _%>
-      <%_ let left = data.position1.x  _%>
-      <%_ let top = data.position1.y  _%>
-      <%_ let mdHeight = height - (height*0.01)  _%>  
+  <%_ let height = data.height  _%>  
+  <%_ let width = data.width  _%>
+  <%_ let left = data.position1.x  _%>
+  <%_ let top = data.position1.y  _%>
+  <%_ let mdHeight = height - (height*0.01)  _%>  
   <%_ let mdWidth = width - (width*0.01)  _%>
   <%_ let mdLeft = left - (left*0.01)  _%>
   <%_ let mdTop = top - (top*0.01)  _%>
@@ -86,6 +89,9 @@ import { useState } from 'react'
                 <%_ } _%>
                 <%_ if ( relation[data.controls[i]].elementInfo.component === 'DateInput') { _%>
                   {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <DateInput<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData}  /></div> : <></>}
+                <%_ } _%>
+                <%_ if ( relation[data.controls[i]].elementInfo.component === 'Dropdown') { _%>
+                  {allowedComponent.includes("<%= relation[data.controls[i]].elementInfo.label.toLowerCase()  %>")|| allowedComponent.includes("ALL") ?<div> <Dropdown<%= relation[data.controls[i]].elementInfo.label  %> setUser={setData}  /></div> : <></>}
                 <%_ } _%>
                 <%_ } _%>
                 <%_ } _%>

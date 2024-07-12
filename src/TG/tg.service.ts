@@ -132,15 +132,17 @@ export class TgService {
 
       // return navbarData
     
-
+      
       let screensNames: string[] = [];
       if (screenDetails.length > 0) {
         for (let i = 0; i < screenDetails.length; i++) {
           screensNames.push(screenDetails[i].screenName);
+          
         }
       }
       //  return screenDetails;
       let dfCgDataArray: any = [];
+      let uniqueDfKey :string[] =[]
       if (screenDetails.length > 0) {
         for (let i = 0; i < screenDetails.length; i++) {
           let defKeys: Keys = {
@@ -169,13 +171,16 @@ export class TgService {
           };
           // return keys
           // console.log(screenDetails[i].DF);
-     
+          if (!uniqueDfKey.includes(screenDetails[i].DF)) {
+            
             let dfCgData: any = await this.DFSevice.prepareDataForDynamicFiles(
               keys,
               token,
             );
             console.log(dfCgData);
             dfCgDataArray.push(dfCgData);
+            uniqueDfKey.push(screenDetails[i].DF)
+          }
 
             if (i === screenDetails.length - 1) {
               await this.DFSevice.generateStaticFiles(assemblerKey, token);

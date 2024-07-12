@@ -431,13 +431,6 @@ export class TgDfService {
     let userMatrixJson: any = JSON.parse(
       await this.redisService.getJsonData(sfKey + ':summary'),
     );
-
-    let userMatrixJdata: any = {
-      jdata: [...uniqueTables],
-      ...userMatrixJson,
-    };
-
-    let userMatrix: any[] = [];
     // arrange the wanted data from casl json in new variable
 
     if (!userMatrixJson) {
@@ -460,87 +453,10 @@ export class TgDfService {
       throw errObj;
     }
 
-    if (userMatrixJson.orgGrp.length > 0) {
-      userMatrixJson.orgGrp.forEach((orgGrp) => {
-        if (orgGrp.org.length > 0) {
-          orgGrp.org.forEach((org) => {
-            if (org.roleGrp.length > 0) {
-              org.roleGrp.forEach((roleGrp) => {
-                if (roleGrp.roles.length > 0) {
-                  roleGrp.roles.forEach((roles) => {
-                    if (roles.psGrp.length > 0) {
-                      roles.psGrp.forEach((psGrp) => {
-                        if (psGrp.ps.length > 0) {
-                          psGrp.ps.forEach((ps) => {
-                            if (ps.df.length > 0) {
-                              ps.df.forEach((df) => {
-                                if (df.resourceType === 'tables') {
-                                  interface obj {
-                                    tenantName: string;
-                                    appGroupName: string;
-                                    appName: string;
-                                    orgGrpCode: string;
-                                    orgCode: string;
-                                    roleGrpCode: string;
-                                    roleCode: string;
-                                    psGrpCode: string;
-                                    psCode: string;
-                                    artfactName: string;
-                                    key: string;
-                                    resource: string;
-                                    SIFlag: string;
-                                    can: string[];
-                                    cannot: string[];
-                                  }
-
-                                  let obj: obj = {
-                                    tenantName: tenantName,
-                                    appGroupName: appGroupName,
-                                    appName: appName,
-                                    orgGrpCode: orgGrp.orgGrpCode,
-                                    orgCode: org.orgCode,
-                                    roleGrpCode: roleGrp.roleGrpCode,
-                                    roleCode: roles.roleCode,
-                                    psGrpCode: psGrp.psGrpCode,
-                                    psCode: ps.psCode,
-                                    artfactName: df.resource,
-                                    key: dfKey,
-                                    resource: 'string',
-                                    SIFlag: 'string',
-                                    can: [],
-                                    cannot: [],
-                                  };
-
-                                  df.tableDetails.forEach((table) => {
-                                    obj.resource = table.resource;
-                                    obj.SIFlag = table.SIFlag.selectedValue;
-                                    obj.can = table.actionAllowed.selectedValue;
-                                    obj.cannot =
-                                      table.actionDenied.selectedValue;
-                                    var obj2 = structuredClone(obj);
-                                    userMatrix.push(obj2);
-                                  });
-                                }
-                              });
-                            }
-                          });
-                        }
-                      });
-                    }
-                  });
-                }
-              });
-            }
-          });
-        }
-      });
-    }
     return {
       key: dfKey,
       uniqueTables: uniqueTables,
       relArray: relArray,
-      userMatrix: userMatrix,
-      userMatrixJdata: userMatrixJdata,
       tables: tables,
     };
   }
@@ -558,8 +474,9 @@ export class TgDfService {
       token: token,
     };
     let uniqueTables = data.uniqueTables;
+    console.log(uniqueTables,'unique');
+    
     let relArray = data.relArray;
-    let userMatrix = data.userMatrix;
     const tenantPath: string = path.dirname(
       path.dirname(path.dirname(path.dirname(path.dirname(__dirname)))),
     );
@@ -588,7 +505,7 @@ export class TgDfService {
       './src/TG/tg-AppTemplate/tg-df/dynamic/prisma.ejs',
       uniqueTables,
       relArray,
-      userMatrix,
+      '',
       '',
       prismaPathName + '/' + 'schema.prisma',
     );
@@ -601,7 +518,7 @@ export class TgDfService {
       AppTemplateCaslPath + '/ability.guard.ts',
     );
 
-    await this.CreateDir(sessionInfo, uniqueTables, srcPathName, userMatrix);
+    await this.CreateDir(sessionInfo, uniqueTables, srcPathName);
     return data;
   }
 
@@ -616,8 +533,7 @@ export class TgDfService {
   async CreateDir(
     sessionInfo: sessionInfo,
     strReadPath: any,
-    tabPath: any,
-    userMatrix: any,
+    tabPath: any
   ) {
     let tables: any = strReadPath;
 
@@ -647,7 +563,7 @@ export class TgDfService {
           './src/TG/tg-AppTemplate/tg-df/dynamic/controller.ejs',
           column,
           tabName,
-          userMatrix,
+          '',
           '',
           tabPath + '/' + tabName + '/' + tabName + '.controller.ts',
         );
@@ -703,21 +619,16 @@ export class TgDfService {
     var all = {};
     var uniqueTables = [];
     var relArray = [];
-    var userMatrix = [];
-    var userMatrixJdata = { jdata: [], orgGrp: [] };
     var tables = [];
     if (data.length > 0) {
       for (let i = 0; i < data.length; i++) {
         uniqueTables.push(...data[i].uniqueTables);
         relArray.push(...data[i].relArray);
-        userMatrix.push(...data[i].userMatrix);
-        userMatrixJdata.jdata.push(...data[i].userMatrixJdata.jdata);
-        userMatrixJdata.orgGrp.push(...data[i].userMatrixJdata.orgGrp);
         tables.push({ ...data[i].tables });
         key.push(data[i].key);
       }
     }
-    all = { key, uniqueTables, relArray, userMatrix, userMatrixJdata, tables };
+    all = { key, uniqueTables, relArray,tables };
 
     return all;
   }

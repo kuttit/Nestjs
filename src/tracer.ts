@@ -12,9 +12,10 @@ dotenv.config();
 const otelExporterOtlpHeaders = process.env.OTEL_EXPORTER_OTLP_HEADERS;
 
 const exporterOptions = {
-  url: 'http://192.168.2.174:4317/v1/traces', 
-   headers: {}, 
-      concurrencyLimit: 10,
+  url: 'https://ingest.in.signoz.cloud:443/v1/traces', 
+  headers:{
+    Authorization:`Bearer ${"e1YmScW5ql7GxpuUiR33oIYq2sQfHdw24Ngi2kg9QXY="}`,
+  }
 };
 
 const traceExporter = new OTLPTraceExporter(exporterOptions);

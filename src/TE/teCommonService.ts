@@ -8,6 +8,13 @@ var { transform } = require("node-json-transform")
 
 @Injectable()
 export class TeCommonService {
+
+  /**
++   * The constructor for the TECommonService class.
+   * @param {RedisService} redisService - The RedisService instance.
+   * @param {CommonService} commonService - The CommonService instance.
+   * @param {GoRuleEngine} goruleEngine - The GoRuleEngine instance.
+   */
   constructor(
     private readonly redisService: RedisService,
     private readonly commonService: CommonService,
@@ -18,6 +25,13 @@ export class TeCommonService {
   /* validate the individual nodetype requirments for a given role and key
     @param key -  The key used to retrieve the security information.
     @param role - check whether the role exists in the request header or not
+    /**
+   * Validates the individual nodetype requirements for a given role and key.
+   *
+   * @param {string} key - The key used to retrieve the security information.
+   * @return {Promise<Object>} - Returns a promise that resolves to an object containing the validation result and warnings.
+   * @throws {Error} - Throws an error if any error occurs during the validation process.
+  
   */
   async validate(key) {
     try{
@@ -292,8 +306,15 @@ export class TeCommonService {
     throw error
   }
   } 
-    
 
+    
+/**
+   * Asynchronously retrieves the security JSON for a node
+   * @param {any[]} nodeDetails - An array of objects containing node details.
+   * @param {string} nodeName - The name of the node.
+   * @param {string} mode - The mode of the node.
+   * @returns {Promise<boolean>} A promise that resolves to a boolean indicating whether the node is allowed or not.
+   */
   async getNodeSecurityJson(nodeDetails:any, nodeName: string,mode:string) {
     this.logger.log("Node Security Json Started")
   
@@ -454,7 +475,15 @@ export class TeCommonService {
   }
       
 
-  
+  /**
+   * Maps the values from the `mapData` object to the corresponding properties in the `response` object.
+   *
+   * @param {Object} mapperConfig - The configuration object containing the mapping data.
+   * @param {Object} mapperConfig.request - The request object used for mapping.
+   * @param {Object} mapperConfig.response - The response object where the values will be mapped to.
+   * @param {Object} mapperConfig.mapData - The object containing the mapping data.
+   * @return {Promise<Object>} - A promise that resolves to the mapped value.
+   */
   async getMapper(mapperconfig:any){
     this.logger.log("Mapper called")
     try { 
@@ -480,6 +509,18 @@ export class TeCommonService {
   }
   }
 
+  /**
+   * Saves the logs related to the TE (Torus Platform Data) node to Redis.
+   *
+   * @param {string} key - The key used for storing the logs.
+   * @param {string} upId - The unique identifier for the logs.
+   * @param {Object} pfjson - The JSON object containing information about the node.
+   * @param {string} mode - The mode of operation for the node.
+   * @param {Object} [request] - The optional request object.
+   * @param {Object} [response] - The optional response object.
+   * @param {string} [prcType] - The optional processing type.
+   * @return {Promise<void>} - A promise that resolves when the logs are saved.
+   */
   async getTElogs(key: any, upId: any, pfjson:any,mode:string,request?:any,response?:any,prcType?:any){
   
     var deci = {};
@@ -499,6 +540,19 @@ export class TeCommonService {
     await this.redisService.setStreamData('TELogs', key + upId, JSON.stringify(deci));    
   }
    
+  /**
+ * Saves an exception related to a process flow in Redis.
+ *
+ * @param {Object} pfjson - The JSON object representing the process flow.
+ * @param {string} mode - The mode of execution.
+ * @param {string} token - The session token.
+ * @param {string} key - The key used for storing the exception.
+ * @param {string} upId - The unique identifier for the exception.
+ * @param {string} error - The error message.
+ * @param {number} status - The HTTP status code.
+ * @param {string} [prcType] - The optional processing type.
+ * @return {Promise<Object>} - A promise that resolves to the exception object.
+ */
   async getException(pfjson:any,mode:string,token:any,key:any,upId:any,error:any,status:any,prcType?:any){
        
     var errdata = {
@@ -525,6 +579,16 @@ export class TeCommonService {
  }
   
     
+  /**
+   * Saves a security exception related to a process flow in Redis.
+   *
+   * @param {Object} pfjson - The JSON object representing the process flow.
+   * @param {string} key - The key used for storing the exception.
+   * @param {string} upId - The unique identifier for the exception.
+   * @param {string} mode - The mode of execution. Either 'E' for execute or 'D' for debug.
+   * @param {string} token - The session token.
+   * @return {Promise<Object>} - A promise that resolves to the exception object.
++   */
   async getsecurityExceptionlogs(pfjson:any,key:any,upId:any,mode:string,token:any){
     var secErrorObj;
     var errdata = {
@@ -631,7 +695,7 @@ export class TeCommonService {
  * @return {Promise<any>} An array of exception log objects.
  * @throws {Error} If there is an error retrieving the exception logs.
  */
-  async getExceplogs(): Promise<any> {
+  async getExceplogs(tName): Promise<any> {
     try {
       var msgid = []
       var strmarr = []
@@ -660,6 +724,7 @@ export class TeCommonService {
         // obj['errorDetail'] = JSON.parse(strmarr[s][1]).errorDetail
 
         // nodeInfo.error = obj
+        var messages = await this.redisService.getStreamRange(tName+'ExceptionLogs')
 
         arrData.push(nodeInfo);
       }
@@ -714,7 +779,15 @@ export class TeCommonService {
     }
   } 
   
-  async commonReturn(input,path): Promise<any> {
+
+   /**
+   * Validates the input object based on the given path.
+   * 
+   * @param {Object} input - The input object to be validated.
+   * @param {string} path - The path to validate.
+   * @return {Promise<string|null>} - A message indicating which keys are empty, or null if all keys are present.
+   */
+  async APIKeyValidation(input,path): Promise<any> {
     var params:any = (Object.keys(input))
    //  var arr =[];
    // var keyValidate =[];

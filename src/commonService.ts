@@ -10,6 +10,16 @@ export class CommonService {
   constructor(private readonly redisService: RedisService,private readonly jwtService:JwtService) {}
   private readonly logger = new Logger(CommonService.name);
 
+
+  /**
++   * This function is used to get the security JSON data based on the given key and token.
++   * The function checks if the user has the required permissions to access the Product Service.
++   * If the user has the required permissions, it returns the security JSON data.
++   * If the user does not have the required permissions, it throws a BadRequestException.
++   * @param key The key used to get the security JSON data.
++   * @param token The token used to check the user's permissions.
++   * @returns The security JSON data.
++   */
   async getSecurityJson(key, token) {
     try {
       this.logger.log('SecurityJSON started');
@@ -381,6 +391,19 @@ export class CommonService {
     }
   }
 
+
+   
+  /**
++   * Asynchronously makes a POST call to the given URL with the given body and headers.
++   * If the call is successful, it returns the response data.
++   * If the call fails, it throws the error response.
++   *
++   * @param {string} url - The URL to make the POST call to.
++   * @param {object} body - The data to send in the request body.
++   * @param {object} headers - The headers to send with the request.
++   * @returns {Promise<any>} The response data if the call is successful.
++   * @throws {Error} The error response if the call fails.
++   */
   async postCallwithDB(url,body,headers?){      
     return await axios.post(url,body,headers)
     .then((res) => this.responseData(res.status, res.data).then((res) => res))
@@ -388,12 +411,34 @@ export class CommonService {
   }
   
 
+  /**
+   * Makes a POST call to the given URL with the given body and headers.
+   * If the call is successful, it returns the response data.
+   * If the call fails, it throws the error response.
+   *
+   * @param {string} url - The URL to make the POST call to.
+   * @param {object} body - The data to send in the request body.
+   * @param {object} headers - The headers to send with the request.
+   * @returns {Promise<any>} - The response data if the call is successful.
+   * @throws {Error} - The error response if the call fails.
+   */
   async postCall(url,body,headers?){      
     return await axios.post(url,body,headers)
     .then((res) => this.responseData(res.status, res.data).then((res) => res))
     .catch((err) => {throw err});  
   }
 
+
+  /**
+   * Asynchronously makes a GET call to the given URL with the given headers.
+   * If the call is successful, it returns the response data.
+   * If the call fails, it throws the error response.
+   *
+   * @param {string} url - The URL to make the GET call to.
+   * @param {object} headers - The headers to send with the request.
+   * @returns {Promise<any>} The response data if the call is successful.
+   * @throws {Error} The error response if the call fails.
+   */
   async getCall(url,headers?){   
     return await axios.get(url,headers)
     .then((res) => this.responseData(res.status, res.data).then((res) => res))
@@ -401,42 +446,62 @@ export class CommonService {
   }
 
 
-  async errorobj(errdata:any,error: any,status:any): Promise<any> {    
+   /**
+   * Creates an error object with the given error details.
+   *
+   * @param {Object} errdata - The error data object.
+   * @param {Object} error - The error object.
+   * @param {number} status - The status code.
+   * @returns {Promise<Object>} - The error object.
+   */
+   async errorobj(errdata:any,error: any,status:any): Promise<any> {    
     if(error.code){
       if(error.code == 'ETIMEDOUT')
         status=408
     }
-    var errobj = {} 
+    var errobj = {}
       errobj['T_ErrorSource'] = errdata.tname,
       errobj['T_ErrorGroup'] = errdata.errGrp,
-      errobj['T_ErrorCategory'] = errdata.fabric,  // General - 9999
-      errobj['T_ErrorType'] = errdata.errType,
+      errobj['T_ErrorCategory'] = errdata.fabric || 9999,  // General - 9999
+      errobj['T_ErrorType'] = errdata.errType ,
       errobj['T_ErrorCode'] = errdata.errCode,
       errobj['errorCode'] = status,
-      errobj['errorDetail'] = error   
+      errobj['errorDetail'] = error  
     return errobj
   }
 
-  async commonErrorLogs(errdata:any,stoken:any,key:any,error:any,status:any,prcdet?:any){
+  async commonErrorLogs(errdata:any,stoken:any,key:any,error:any,status:any,commonerr?:any,prcdet?:any){
     try{
+      var sessioninfo = {}    
       var token:any = this.jwtService.decode(stoken,{ json: true })
+     if(key){
       var str = key.split(':');
-      var sessioninfo = {}
-      sessioninfo['user'] =  token.firstName || token.preferred_username;
       sessioninfo['appGroupName'] =  str[1];
-      sessioninfo['fabric'] =  str[3];    
+      sessioninfo['fabric'] =  str[3];
+    }
+      if(token){
+      sessioninfo['user'] =  token.firstName || token.preferred_username;      
       sessioninfo['orgGrp'] =  token.orgGrp.orgGrpCode;
       sessioninfo['org'] =   token.orgGrp.orgCode;
       sessioninfo['roleGrp'] =  token.roleGrp.roleGrpCode;
       sessioninfo['role'] =  token.roleGrp.roleCode;
       sessioninfo['psGrp'] =  token.psGrp.psGrpCode;
       sessioninfo['ps'] =  token.psGrp.psCode;
+      }else{
+        sessioninfo = commonerr
+      }
+      console.log('ss', sessioninfo)
       var errorDetails = await this.errorobj(errdata,error,status)
       var logs = {}
       logs['sessionInfo'] = sessioninfo
       logs['errorDetails'] = errorDetails
+      console.log('ll',logs)
+      if(key){
       if(str[3] == 'PF')
         logs['processInfo'] = prcdet
+      }
+      if(key == undefined || key == "")
+        key = 'commonError'
       await this.redisService.setStreamData(errdata.tname+'ExceptionLogs',key,JSON.stringify(logs))    
       return errorDetails
     } catch(err){

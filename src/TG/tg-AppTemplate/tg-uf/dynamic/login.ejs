@@ -1,8 +1,4 @@
 'use client'
-import {
-  checkIsActive,
-  loginWithRealm
-} from '../torusComponents/serverFunctions'
 import { Button, CircularProgress, Input } from '@nextui-org/react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import React, { useEffect, useState } from 'react'
@@ -14,8 +10,6 @@ import {
   DropdownItem
 } from '@nextui-org/react'
 import axios from 'axios'
-import picture from '../assets/google.png'
-import pictures from '../assets/github.png'
 import Image from 'next/image'
 type Realm = {
   id: string
@@ -23,10 +17,10 @@ type Realm = {
 }
 import { MdOutlineRemoveRedEye } from 'react-icons/md'
 import { IoEyeOffOutline } from 'react-icons/io5'
-
+import { getCookie, setCookie } from '../components/cookieMgment'
+import { toast } from 'react-toastify'
 
 const fabricType = 'UF'
-
 
 interface Props {
   appControl?: 'TP' | 'TM' | 'CG'
@@ -35,13 +29,10 @@ interface Props {
 const LoginForm = ({ appControl = 'CG' }: Props) => {
   const [checkDetails, setCheckDetails] = useState(false)
   const [realmList, setRealmList] = useState<Realm[] | any[]>([])
-  const [realmId, setRealmId] = useState<string>('')
   const [data, setData] = useState<any>({
-    realm: '',
+    tenant: '',
     username: '',
-    password: '',
-    client_id: '',
-    client_secret: ''
+    password: ''
   })
   const [errTenant, setErrTenant] = useState<any>()
   const [loading, setLoading] = useState(false)
@@ -53,28 +44,49 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
   const searchparams = useSearchParams()
 
   useEffect(() => {
-    var token = localStorage.getItem('token')
-    var user: any = localStorage.getItem('user')
-    if (token && user) {
-      ;(async () => {
-        const res = await checkIsActive(JSON.parse(user), JSON.parse(token))
-        if (res.active == false) {
-          localStorage.removeItem('token')
-          localStorage.removeItem('user')
-          setData({
-            realm: '',
-            username: '',
-            password: '',
-            client_id: '',
-            client_secret: ''
-          })
-        }
-        if (res.active == true) {
-          routes.push('/<%= data[0] %>')
-        }
-      })()
+    var token = getCookie('id_token')
+    if (token) {
+      routes.push('/tenantProfile')
     }
   }, [])
+
+  async function Login() {
+    try {
+      if (data.tenant && data.username && data.password) {
+        setLoading(true)
+        const res = await axios.post('http://localhost:3002/tp/signin', {
+          client: data.tenant,
+          role: 'seniordev',
+          username: data.username,
+          password: data.password
+        })
+        if (res.status == 201) {
+          setCookie('id_token', res.data.token)
+          setCookie('tenant', data.tenant)
+          toast.success('Login Successful')
+          routes.push('/tenantProfile')
+        } else {
+          setLoading(false)
+          toast.error('Login Failed')
+        }
+      } else {
+        setError('fill all details')
+        setCheckDetails(true)
+        setLoading(false)
+      }
+    } catch (error) {
+      const { response }: any = error
+      console.log(response)
+
+      if (response) {
+        setLoading(false)
+        toast.error(response?.data?.errorDetails)
+      } else {
+        setLoading(false)
+        toast.error('unContoller error occured')
+      }
+    }
+  }
 
   useEffect(() => {
     if (searchparams.size) {
@@ -95,9 +107,9 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
         )
       }
     }
-    (async () => {
+    ;(async () => {
       try {
-        const res = await axios.get('http://localhost:3002/keycloak/allRealm')
+        const res = await axios.get('http://localhost:3002/tp/getClientTenant')
         res.status == 200 ? setRealmList(res.data) : setRealmList([])
       } catch (err) {
         console.log('Error occured')
@@ -105,79 +117,15 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
     })()
   }, [])
 
-  async function Login() {
-    if (
-      data.realm &&
-      data.username &&
-      data.password &&
-      data.client_id &&
-      data.client_secret
-    ) {
-      setLoading(true)
-      const res = await loginWithRealm(data)
-
-      if (res.access_token) {
-        setLoading(false)
-        localStorage.setItem('token', JSON.stringify(res))
-        localStorage.setItem('user', JSON.stringify(data))
-        localStorage.setItem('isLogin', 'keyCloakTrue')
-        setRealmId('')
-       
-        routes.push('/tenantProfile')
-      } else {
-        setError(res)
-        setLoading(false)
-      }
-    } else {
-      if (!data.email && !data.password) {
-        setError('Fill all the details')
-      }
-      if (!data.realm) {
-        setErrTenant('please select tenant')
-      }
-      setLoading(false)
-      setCheckDetails(true)
-    }
-  }
-
   const handleSelectRealm = async (datas: any) => {
-    setData({ ...data, realm: datas.name })
-    setRealmId(datas.id)
+    setData({ ...data, tenant: datas })
     setErrTenant('')
-  }
-
-  const handleClientCredentials = async () => {
-    try {
-      if (realmId) {
-        const res = await axios.get(
-          `http://localhost:3002/keycloak/allClient/${realmId}`
-        )
-        if (res.data.length)
-          setData({
-            ...data,
-            client_id: res.data[0].client_id,
-            client_secret: res.data[0].secret
-          })
-      }
-    } catch (err) {
-      console.log(err)
-    }
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setError('')
     const { name, value } = e.target
     setData({ ...data, [name]: value })
-  }
-
-  useEffect(() => {
-    if (realmId) {
-      handleClientCredentials()
-    }
-  }, [realmId])
-
-  const handleNavigateToRegister = () => {
-    routes.push('/tenantProfile')
   }
 
   return (
@@ -204,25 +152,6 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
         </div>
         {appControl === 'TP' && (
           <div className='flex w-full flex-col items-center justify-center gap-3 '>
-            <div className='grid grid-cols-2 gap-1'>
-              <Button className='google-signin-button flex items-center rounded-md border border-black bg-white px-4 py-2'>
-                <Image
-                  src={pictures}
-                  alt='GitHub logo'
-                  width={20}
-                  height={25}
-                />
-                <span className='ml-2 text-sm font-semibold text-black'>
-                  Sign in with GitHub
-                </span>
-              </Button>
-              <Button className='google-signin-button flex items-center rounded-md border border-black bg-white px-4 py-2'>
-                <Image src={picture} alt='Google logo' width={30} height={35} />
-                <span className='ml-2 text-sm font-semibold text-black'>
-                  Sign in with Google
-                </span>
-              </Button>
-            </div>
             <h2 className='text-[14px] text-slate-400'>Or continue with</h2>
           </div>
         )}
@@ -233,10 +162,10 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
               size='lg'
               variant='bordered'
               className={`border-2 border-[#323B45] ${
-                checkDetails && !data.realm ? 'text-red-400' : 'text-white'
+                checkDetails && !data.tenant ? 'text-red-400' : 'text-white'
               }`}
             >
-              {data.realm ? data.realm : 'Select Tenant'}
+              {data.tenant ? data.tenant : 'Select Tenant'}
             </Button>
           </DropdownTrigger>
           <DropdownMenu
@@ -247,13 +176,13 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
               base: 'bg-[#20252B] border-1 border-black'
             }}
           >
-            {realmList.map((realm, id) => (
+            {realmList.map((tenant, id) => (
               <DropdownItem
                 className=' text-white hover:bg-slate-200'
+                onClick={() => handleSelectRealm(tenant)}
                 key={id}
-                onClick={() => handleSelectRealm(realm)}
               >
-                {realm.name}
+                {tenant}
               </DropdownItem>
             ))}
           </DropdownMenu>
@@ -357,7 +286,5 @@ const LoginForm = ({ appControl = 'CG' }: Props) => {
     </div>
   )
 }
-
-
 
 export default LoginForm

@@ -95,7 +95,21 @@ export class DebugService {
     validates the wrong flow, retrieves the request data based on the node type and additional parameters & 
     store it to NPCI, then calls the debugProcessor method.
     If no additional parameters are provided,it returns the existing NPCI data.
+
+   * Debug a specific node in a process flow based on a given key and specific node name.
+   * 
+   * @param {string} key - The key used to identify the process flow.
+   * @param {string} upId - The unique identifier for the debug request.
+   * @param {string} nodeName - The specific node name for which the debugging is targeted.
+   * @param {string} nodeType - The type of the node being debugged.
+   * @param {string} nodeId - The ID of the node being debugged.
+   * @param {any} params - Additional parameters for the node being debugged.
+   * @param {string} mode - The mode of the debug request.
+   * @param {string} token - The authentication token for the debug request.
+   * @return {Promise<any>} The debug response data from Redis.
+
   */
+ 
     async getdebugNodeProcess(key,upId,nodeName,nodeType,nodeId, params,mode,token) { 
       this.logger.log("Node level Debug started")
         try { 
@@ -116,7 +130,17 @@ export class DebugService {
     Debug the a specific node in process flow based on a given key and specific node name.
     @params key - The key used to identify the process flow.
     @params node_name - The specific node name for which the debugging is targeted.
-  */
+
+     * Debug processor function to execute the debug node flow.
+     * @param key - The key for storing the data.
+     * @param upId - The unique identifier for the execution.
+     * @param node_name - The name of the node.
+     * @param nodeId - The identifier of the node.
+     * @param mode - The mode of execution.
+     * @param token - The token for authentication.
+     * @returns A promise that resolves to a string indicating the success of the execution.
+     * 
+     */
 
     async debugProcessor(key,upId,node_name,nodeId,mode,token) {  
   
@@ -385,7 +409,16 @@ export class DebugService {
     Performs API call (make avaiable Pro data in NPC,IPC) for a specific node
     @params key    - The key passed to identify the particular node in process flow.
     @params pfjson - This variable holding the values of parsed process flow json
-    @params input  - This is passed to form the url with current node name              
+    @params input  - This is passed to form the url with current node name 
+
+   * Performs API call (make available Pro data in NPC, IPC) for a specific node.
+   * @param key - The key passed to identify the particular node in process flow.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param pfjson - The parsed process flow JSON.
+   * @param node_name - The name of the current node.
+   * @param arr - The array containing the node data.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
   */
     async  nodedebugProcessor(key,upId,pfjson,node_name,arr,mode, token){    
       this.logger.log('Node Processor started!');        
@@ -439,9 +472,6 @@ export class DebugService {
             throw new BadRequestException(errorobj)
           } 
     }
-  
-  
-
 }
 
 

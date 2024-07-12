@@ -23,7 +23,8 @@ export class AppController {
 
   @Post('commonApiError')
   async exceptionCall(@Body() input, @Req() request:any){
-    var bearToken = request.headers.authorization.split(' ')[1];
-    return await this.commonService.commonErrorLogs(input.errData,bearToken,input.key,input.error,input.status)
+    if(request.headers.authorization)
+    var bearToken = request.headers.authorization.split(' ')[1];  
+    return await this.commonService.commonErrorLogs(input.errData,bearToken,input.key,input.error,input.status,input.commonerr)
   }
 }

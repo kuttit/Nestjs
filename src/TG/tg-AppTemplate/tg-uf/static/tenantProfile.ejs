@@ -2,15 +2,22 @@
 import React, { useEffect, useState } from 'react'
 import AppSelector from '../components/appSelector'
 import { Spinner } from '@nextui-org/react'
+import { getCookie } from '../components/cookieMgment'
+import axios from 'axios'
 
 const page = () => {
   const [tenant, setTenant] = useState('')
   useEffect(() => {
-    const res = localStorage.getItem('user')
-    if (res) {
-      const user = JSON.parse(res)
-      setTenant(user.realm)
-    }
+    const id_token = getCookie('id_token')
+    axios.get(`http://localhost:3002/tp/userDetails`, {
+      headers: {
+        Authorization: `Bearer ${id_token}`,
+      },
+    }).then((res) => {
+      if (res.status == 200) {
+        setTenant(res.data.client)
+      }
+    });
   }, [])
   return (
     <div>

@@ -8,6 +8,15 @@ import { CommonService } from 'src/commonService';
 
 @Injectable()
 export class SavehandlerService {    
+
+   /**
+     * Service responsible for handling the save operation for a given key, event, session information, pKey, nodeId, nodeName, role, mode, and upId.
+     *
+     * @param {DebugService} debugService - The debug service used for logging information.
+     * @param {CommonService} commonService - The common service used for generic operations such as API calls, database operations, etc.
+     * @param {RedisService} redisService - The redis service used for interacting with the Redis database.
+     * @param {TeService} teService - The TE service used for interacting with the TE microservice.
+     */
     constructor(private readonly debugService: DebugService,private readonly commonService: CommonService,
      private readonly redisService:RedisService,private readonly teService:TeService) {}
     private readonly logger = new Logger(SavehandlerService.name);
@@ -97,6 +106,12 @@ export class SavehandlerService {
         }
     
 
+         /**
++     * This method retrieves the node name from the process flow for a given node ID.
++     * @param pKey The key used to identify the process flow.
++     * @param nodeId The ID of the node.
++     * @returns The node name.
++     */
     async getnodename(pKey,nodeId){
       const json = await this.redisService.getJsonData(pKey + 'processFlow'); 
       var pfjson: any = JSON.parse(json);

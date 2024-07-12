@@ -110,9 +110,8 @@ const AppSelector = ({ tenant }: any) => {
               <div
                 key={index}
                 onClick={() => handleAppGroupSelection(appGroup)}
-                className={`cursor-pointer ${
-                  selectedAppGroup == appGroup ? 'rounded bg-gray-400 p-2' : ''
-                }`}
+                className={`cursor-pointer ${selectedAppGroup == appGroup ? 'rounded bg-gray-400 p-2' : ''
+                  }`}
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
@@ -134,11 +133,10 @@ const AppSelector = ({ tenant }: any) => {
               <div
                 key={index}
                 onClick={() => handleSelectOrgGrp(orgGrp)}
-                className={`cursor-pointer ${
-                  selectedGrps.orgGrp.orgGrpName == orgGrp.orgGrpName
-                    ? 'rounded bg-gray-400 p-2'
-                    : ''
-                }`}
+                className={`cursor-pointer ${selectedGrps.orgGrp.orgGrpName == orgGrp.orgGrpName
+                  ? 'rounded bg-gray-400 p-2'
+                  : ''
+                  }`}
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
@@ -160,11 +158,10 @@ const AppSelector = ({ tenant }: any) => {
               <div
                 key={roleGrp.roleGrpCode}
                 onClick={() => handleSelectRGrp(roleGrp)}
-                className={`cursor-pointer ${
-                  selectedGrps.roleGrp.roleGrpName == roleGrp.roleGrpName
-                    ? 'rounded bg-gray-400 p-2'
-                    : ''
-                }`}
+                className={`cursor-pointer ${selectedGrps.roleGrp.roleGrpName == roleGrp.roleGrpName
+                  ? 'rounded bg-gray-400 p-2'
+                  : ''
+                  }`}
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
@@ -185,11 +182,10 @@ const AppSelector = ({ tenant }: any) => {
               <div
                 key={psGrp.psGrpCode}
                 onClick={() => handleSelectPsGrp(psGrp)}
-                className={`cursor-pointer ${
-                  selectedGrps.psGrp.psGrpName == psGrp.psGrpName
-                    ? 'rounded bg-gray-400 p-2'
-                    : ''
-                }`}
+                className={`cursor-pointer ${selectedGrps.psGrp.psGrpName == psGrp.psGrpName
+                  ? 'rounded bg-gray-400 p-2'
+                  : ''
+                  }`}
               >
                 <div className='flex items-center justify-between'>
                   <div className='flex items-center gap-2'>
@@ -205,7 +201,7 @@ const AppSelector = ({ tenant }: any) => {
         </div>
       </div>
       <div className='flex w-full justify-between'>
-        <Applist selectedGrps={selectedGrps} appGroup={selectedAppGroup} />
+        <Applist tenant={tenant} selectedGrps={selectedGrps} appGroup={selectedAppGroup} />
       </div>
     </div>
   )

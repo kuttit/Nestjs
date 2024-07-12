@@ -14,6 +14,13 @@ import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class NodeExecutionService {
+
+  /**
++   * Constructor for the NodeExecutionService class.
++   * @param jwtService - The JwtService used for authentication.
++   * @param commonService - The CommonService used for common functionalities.
++   * @param tecommonService - The TeCommonService used for common functionalities specific to TE.
++   */
   constructor( private readonly jwtService: JwtService, private readonly commonService:CommonService, 
     private readonly tecommonService:TeCommonService ) {}
   private readonly logger = new Logger(NodeExecutionService.name);   

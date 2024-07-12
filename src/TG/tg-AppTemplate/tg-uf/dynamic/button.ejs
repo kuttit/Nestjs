@@ -4,6 +4,7 @@ import ButtonComponent from '@/app/components/button'
 import axios from 'axios'
 import { InfoMsg } from '@/app/torusStaticHandlers/infoMsgHandler'
 import { CircularProgress } from '@nextui-org/react'
+import { getCookie } from '@/app/components/cookieMgment'
 <%_ for(let i=0;i<data.props.length;i++){_%>
 <%_ if(data.props[i].name === 'isIconOnly' && data.props[i].value){_%>
 import { <%= data.props[i].icon  %> } from 'react-icons/fa'
@@ -11,11 +12,10 @@ import { <%= data.props[i].icon  %> } from 'react-icons/fa'
 <%_ } _%>
 const Button<%= data.label %> =  ({ user<%_ if(data1[1] !== '') {_%>, nodeDetails <%_ } _%>}: { user: any<%_ if(data1[1] !== '') {_%>, nodeDetails: any <%_ } _%>}) => {
  <%_if(data1[2] !== '' && data1[3] !== '' && data1[1] !== '' ){_%>
-  const token:any = localStorage.getItem('token')
+  const token:any = getCookie('token')
   const [loading, setLoading] = useState(false)
-  const accessToken=JSON.parse(token)
   const sessionInfo:any = {
-    accessToken: accessToken.access_token,
+    accessToken: token,
     authToken: ''
   }
   const HandlerParams:any = '<%= data1[0]  %>:Events:Group<%= data2.nodeProperties.nodeName %>:Button<%= data.label %>:v1'

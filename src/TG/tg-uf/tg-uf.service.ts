@@ -244,11 +244,6 @@ export class TgUfService {
     );
     await this.TGCommonService.copyFile(
       sessionInfo,
-      './src/TG/tg-AppTemplate/tg-uf/static/tenantProfileLayout.ejs',
-      app_name + '/app' + '/tenantProfile' + '/layout.tsx',
-    );
-    await this.TGCommonService.copyFile(
-      sessionInfo,
       './src/TG/tg-AppTemplate/tg-uf/static/forgotPassword.ejs',
       app_name + '/app' + '/components' + '/forgotPassword.tsx',
     );
@@ -266,6 +261,11 @@ export class TgUfService {
       sessionInfo,
       './src/TG/tg-AppTemplate/tg-uf/static/appSelector.ejs',
       app_name + '/app' + '/components' + '/appSelector.tsx',
+    );
+       await this.TGCommonService.copyFile(
+      sessionInfo,
+      './src/TG/tg-AppTemplate/tg-uf/static/cookieMgment.ejs',
+      app_name + '/app' + '/components' + '/cookieMgment.tsx',
     );
     await this.TGCommonService.copyFile(
       sessionInfo,
@@ -936,6 +936,33 @@ export class TgUfService {
                         'Group' +
                         nodeProperties[compDetails[i].componentsId].nodeName +
                         '/DateInput' +
+                        nodeProperties[componentsId[j]].elementInfo.label +
+                        '.tsx',
+                    );
+                  }
+                }
+              }
+              if (
+                nodeProperties[nodes[j].id].elementInfo.component ===
+                'Dropdown'
+              ) {
+                for (let k = 0; k < nodes.length; k++) {
+                  if (nodes[j].T_parentId === nodes[k].id) {
+                    await this.TGCommonService.CreateFileWithThreeParam(
+                      sessionInfo,
+                      './src/TG/tg-AppTemplate/tg-uf/dynamic/dropdown.ejs',
+                      nodeProperties[componentsId[j]].elementInfo,
+                      nodes[j],
+                      '',
+                      nodes[k],
+                      app_name +
+                        '/app' +
+                        '/' +
+                        screenName +
+                        '/' +
+                        'Group' +
+                        nodeProperties[compDetails[i].componentsId].nodeName +
+                        '/Dropdown' +
                         nodeProperties[componentsId[j]].elementInfo.label +
                         '.tsx',
                     );

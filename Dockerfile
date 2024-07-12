@@ -1,29 +1,9 @@
-# Stage 1: Build the application
-FROM node:20 AS build
-
-# Install pnpm globally
-RUN npm install -g pnpm
-
-# Set the working directory
+FROM node:20-alpine AS build
+RUN npm i -g pnpm
 WORKDIR /usr/src/app
-
-# Copy package.json and pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml ./
-
-# Install dependencies
+COPY package*.json pnpm-lock.yaml ./
 RUN pnpm install
-
-# Install additional dependencies
-RUN pnpm add @opentelemetry/resources @opentelemetry/semantic-conventions
-
-# Copy the rest of the application code
 COPY . .
-
-# Build the application
-RUN pnpm run build
-
-# Expose the application port
+RUN pnpm build
 EXPOSE 3002
-
-# Command to run the application
-CMD ["pnpm", "start:dev"]
+CMD ["pnpm","start:dev"]

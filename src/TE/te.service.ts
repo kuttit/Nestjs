@@ -8,6 +8,7 @@ import { CommonService } from 'src/commonService';
 import { QueueConsumer } from './queueConsumer';
 import { Input } from './Dto/input';
 import Bull from 'bull';
+import { Resource } from '@opentelemetry/resources';
 
 
 
@@ -26,6 +27,15 @@ import Bull from 'bull';
 
 @Injectable()
 export class TeService { 
+  /**
+   * The constructor for the TE service class.
+   * 
+   * @param tecommonService The TE common service instance.
+   * @param commonService The common service instance.
+   * @param redisService The Redis service instance.
+   * @param jwtService The JWT service instance.
+   * @param queueConsumer The queue consumer instance.
+   */
   constructor(   
     private readonly tecommonService: TeCommonService,
     private readonly commonService: CommonService,
@@ -35,6 +45,18 @@ export class TeService {
   ) {}
   private readonly logger = new Logger(TeService.name);
   
+
+  
+  /**
+   * Retrieves the TE stream for a given key and queue name.
+   * @param sfkey The SF key.
+   * @param key The process key.
+   * @param token The session token.
+   * @param mode The process mode.
+   * @param sflag The sflag.
+   * @param queueName The queue name.
+   * @returns The response data.
+   */
   async getTeStream(sfkey,key,token,mode,sflag,queueName) {
     this.logger.log("PE Stream Started")
     try {
@@ -57,32 +79,9 @@ export class TeService {
 
     // this.queueConsumer.generateQueue('PF',input)   
      const queuedata: any = await this.queueConsumer.getAllJobsFromQueue(queueName);
-    
+     console.log(queuedata);
       var jobdata = queuedata[0].data.input;
-     
-
-      // await this.redisService.setStreamData('TEStream', 'TEField', JSON.stringify(PECredentials))
-      // var grpInfo = await this.redisService.getInfoGrp('TEStream')
-      // if(grpInfo.length == 0){
-      //   await this.redisService.createConsumerGroup('TEStream','TEGroup')
-      // }else if(!grpInfo[0].includes('TEGroup')){
-      //   await this.redisService.createConsumerGroup('TEStream','TEGroup')    
-      // } 
-      //   let msg1:any = await this.redisService.readConsumerGroup('TEStream','TEGroup','Consumer1');
-      //   if(msg1.length >0){
-      //     for(var s=0;s<msg1.length;s++){
-      //       var msgid = msg1[s].msgid;
-      //       var data = msg1[s].data     
-
-      //       if(data.length > 0 && data[1] != null){
-      //         pToken = JSON.parse(data[1]).sessionInfo 
-      //         pKey = JSON.parse(data[1]).processInfo.key
-      //         pId = JSON.parse(data[1]).processInfo.pId
-      //         pMode = JSON.parse(data[1]).processInfo.mode
-      //       }   
-      //     }
-      //   }
-              
+    
         var artifact = jobdata.key.split(':')[4]
        
         if(artifact == 'SSH'){         
@@ -98,12 +97,14 @@ export class TeService {
           }
         }
         else{
+         
         var result:any = await this.getProcess(jobdata.sfkey,jobdata.key,jobdata.upId,jobdata.token,jobdata.mode,sflag)
 
         if(result == 'Success'){
          // await this.redisService.ackMessage('TEStream', 'TEGroup', msgid);
           this.logger.log("TE Stream completed")
-          await this.queueConsumer.completeJobs(jobdata[0]);
+          console.log(queuedata[0].id);
+         // await this.queueConsumer.completeJobs(queuedata[0].id);
           return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }
         else if(result.status == 200){
@@ -119,6 +120,19 @@ export class TeService {
     }        
     }
  
+
+    /**
+     * Executes static code for a given process flow, node, request data, and mode.
+     * @param sfkey - The SF key.
+     * @param key - The process key.
+     * @param upId - The unique identifier for the debug request.
+     * @param nodeId - The ID of the node.
+     * @param nodeName - The name of the node.
+     * @param reqdata - The request data.
+     * @param token - The session token.
+     * @param mode - The process mode.
+     * @returns The response data.
+     */
     async staticCodeExec(sfkey,key,upId,nodeId,nodeName,reqdata,token,mode){
       this.logger.log("static code execution started")
       try{      
@@ -146,6 +160,18 @@ export class TeService {
     }
 
  
+    /**
+   * Resumes a process flow based on the provided key and mode.
+   * @param sfkey - The SF key.
+   * @param key - The process key.
+   * @paramupid - The unique identifier for the resume request.
+   * @param token - The session token.
+   * @param mode - The process mode.
+   * @param sflag - The flag for the resume process.
+   * @param queuename - The name of the queue.
+   * @returns The response data.
+   * @throws {Error} If there is an error during the resume process.
+   */
   async resumeProcess(sfkey,key,upid,token,mode,sflag?,queuename?){
     try{
       this.logger.log("Resume Process started")
@@ -158,14 +184,14 @@ export class TeService {
         if(jobdata.mode == 'D')
           nodeId = nodeInfo[nodeInfo.length-1] 
 
-      var arr = JSON.parse(await this.redisService.getJsonData(jobdata.key+jobdata.upId+':previousArray'))
+      var arr = JSON.parse(await this.redisService.getJsonData(jobdata.key+jobdata.upId+':nodeData'))
       if(jobdata.mode == 'D' && sflag == 'N'){
         var continueresult = await this.Processor(jobdata.key,jobdata.upId,nodeId,arr,jobdata.mode,jobdata.token,sflag)    
        // await this.pfPostProcessor(key, upid);   
       
         
         if(continueresult == 'Success'){  
-          await this.queueConsumer.completeJobs(jobdata[0]);
+         // await this.queueConsumer.completeJobs(jobdata[0]);
           return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }else{
           return continueresult
@@ -216,7 +242,7 @@ export class TeService {
         var continueresult = await this.Processor(jobdata.key,jobdata.upId,nodeId,arr,jobdata.mode,jobdata.token,sflag,sjson['Node'])    
         
         if(continueresult == 'Success'){ 
-          await this.queueConsumer.completeJobs(jobdata[0]);        
+        //  await this.queueConsumer.completeJobs(jobdata[0]);        
           return await this.commonService.responseData(201,jobdata.key+jobdata.upId)
         }else{
           return continueresult
@@ -230,6 +256,12 @@ export class TeService {
   }
     
 
+  /**
+   * Retrieves information about a specific field from the stream logs.
+   * @param field - The field to retrieve information about.
+   * @param mode - The mode of execution (E for exception, D for debug).
+   * @returns An array containing the values of the specified field from the logs.
+   */
   async getNodeInfo(feild:any,mode:any){   
     try{
       var entries;
@@ -270,6 +302,19 @@ export class TeService {
     }    
   }
    
+
+   /**
+   * Processor function for resuming Process Flow execution.
+   * @param key - The key used for storing data in redis.
+   * @param upId - The unique identifier for the Process Flow execution.
+   * @param nodeId - The current nodeId being processed.
+   * @param arr - The array containing the node data.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
+   * @param sflag - The flag indicating suspend mode.
+   * @param nodeDetails - The details of the current node.
+   * @returns The status of the Process Flow execution.
+   */
   async Processor(key,upId,nodeId,arr,mode,token,sflag,nodeDetails?) {
     this.logger.log('Resume Pf Processor started!');   
   
@@ -303,7 +348,7 @@ export class TeService {
               obj['nodetype'] = pfjson[i].nodeType;                     
               if(!nodeIdChk.includes(pfjson[i].nodeId)){
                 arr.push(obj);   
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))    
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))    
               }           
               var htNodeProp = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);
               if(Object.keys(htNodeProp).length>0){             
@@ -372,9 +417,9 @@ export class TeService {
             obj['nodetype'] = pfjson[i].nodeType;
             if(!nodeIdChk.includes(pfjson[i].nodeId)){
                 arr.push(obj);       
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
             }  
-            await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+            await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
             var whnodeprop = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);
             if(Object.keys(whnodeprop).length>0){            
               var whReq = JSON.parse(whnodeprop).data.pro.request  
@@ -482,7 +527,7 @@ export class TeService {
                 obj['nodetype'] = pfjson[i].nodeType;
                 if(!nodeIdChk.includes(pfjson[i].nodeId)){                                 
                   arr.push(obj);       
-                  await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                  await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
                 }               
                 var cmresult = {}
                 var deciresult = {}
@@ -566,7 +611,7 @@ export class TeService {
 
               if(!nodeIdChk.includes(pfjson[i].nodeId)){                
                 arr.push(obj);    
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
               }     
               await this.nodePreProcess(key,pfjson[i],upId,mode,token)
               await this.nodeProcess(key,pfjson[i],arr,upId,mode,token,nodeIdChk)
@@ -609,6 +654,12 @@ export class TeService {
     return 'Success'      
   }
 
+
+   /**
+   * Performs pre-processing tasks (make avaiable Pre data in NPC,IPC) for a specific node
+   * @param key    - The key passed to identify the particular node in process flow.
+   * @param pfjson - This variable holding the values of parsed process flow json 
+   */
   async nodePreProcess(key,pfjson,upId,mode,token){
     this.logger.log('Node PreProcessor started!');  
     try{     
@@ -635,6 +686,17 @@ export class TeService {
   }
   }
 
+  /**
+   * Performs API call (make avaiable Pro data in NPC,IPC) for a specific node
+   * @param key    - The key passed to identify the particular node in process flow.
+   * @param pfjson - This variable holding the values of parsed process flow json 
+   * @param arr    - The array containing the node data.
+   * @param upId   - The unique identifier for the Process Flow execution.
+   * @param mode   - The mode of execution (D for debug, E for error).
+   * @param token  - The auth token.
+   * @param nodeIdChk - The array containing the nodeIds to be excluded from processing.
+   * @returns void
+   */
   async nodeProcess(key,pfjson,arr,upId,mode,token,nodeIdChk){    
     this.logger.log('Node Processor started!');      
       try{  
@@ -694,6 +756,15 @@ export class TeService {
       }      
   }
 
+
+  /**
+   * Performs post-processing tasks (make available Post data in NPC,IPC) for a specific node.
+   * @param key - The key passed to identify the particular node in process flow.
+   * @param pfjson - JSON object holding the values of parsed process flow json.
+   * @param upId - unique identifier for the process flow instance.
+   * @param mode - execution mode of the process flow.
+   * @param token - token for authentication.
+   */
   async nodePostProcess(key,pfjson,upId,mode,token){
     this.logger.log('Node PostProcessor started!');
       try{ 
@@ -721,12 +792,21 @@ export class TeService {
  
     
 
-  /* Store the form data to humantask node's request
-     @param key -  The key used to identify the process flow.
-     @param nodeName - The name of the node whose property needs to be updated.
-     @param fdata - The form data to be set as the node property.
-     @param role  - The role used for process execution.
-  */
+  /**
+   * Store the form data to humantask node's request.
+   *
+   * @param {string} sfkey - The key used to identify the process flow.
+   * @param {string} key - The key used to identify the process flow.
+   * @param {string} upId - The unique identifier for the process flow execution.
+   * @param {string} nodeId - The id of the humantask node.
+   * @param {string} nodeName - The name of the humantask node.
+   * @param {Object} fdata - The form data to be set as the node property.
+   * @param {string} token - The session token.
+   * @param {string} mode - The mode of execution (D for debug, E for error).
+   * @param {string} [sflag] - The flag for the process flow (N for normal, undefined for default).
+   * @returns {Promise<Object|string>} - The response of the process flow execution.
+   * @throws {BadRequestException} - If there is a security exception.
+   */
   async getFormdata(sfkey:any,key:any,upId:any, nodeId:any, nodeName:any, fdata:any,token:any,mode:any,sflag?:any) {
     this.logger.log("Execution getFormData started")
     try{
@@ -754,10 +834,18 @@ export class TeService {
     
     
 
-  /* checks if the form data exists in the humantask node's request, else
-     it will returns either URL or success message   
-     @param key - The key used to identify the process flow.
-  */
+  /**
+   * Checks if the form data exists in the humantask node's request,
+   * and returns either the URL or a success message.
+   *
+   * @param {string} key - The key used to identify the process flow.
+   * @param {string} upId - The unique identifier for the process flow execution.
+   * @param {string} mode - The mode of execution (D for debug, E for error).
+   * @param {string} token - The session token.
+   * @param {string} [sflag] - The flag for the process flow (N for normal, undefined for default).
+   * @param {any} [nodeDetails] - The details of the current node.
+   * @return {Promise<Object|string>} - The URL or success message.
+   */
   async returnformdata(key, upId,mode,token,sflag?,nodeDetails?) {
       this.logger.log("Return formData executed")
       try{
@@ -806,10 +894,17 @@ export class TeService {
   }
       
 
-  /* Executes the process flow based on a given valid key and role check
-     @param key  - The key used to identify the process flow.  
-     @param role - Check if the incoming role had a permission to enter this method
-  */
+  /**
+   * Executes the process flow based on a given valid key and role check.
+   * @param sfkey - The SF key used to identify the process flow.
+   * @param key - The key used to identify the process flow.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param token - The session token.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param sflag - The flag for the process flow (N for normal, undefined for default).
+   * @returns The response data.
+   * @throws {Error} If there is an error during the execution.
+   */
   async getProcess(sfkey,key,upId,token,mode,sflag?) {  //GSS-DEV:WPS:IPP:PF:payment:v1:
 
     this.logger.log("Torus Process Engine Started....") 
@@ -890,10 +985,17 @@ export class TeService {
 
   // -----------------------------pfPreProcessor--------------------------------------
 
-  /* Checks Processflow json along with all nodes having config, 
-     workflow and setting placeholder for NPC,IPC
-     @param key - The key used to identify the process flow.
-  */
+  /**
+   * Checks Processflow json along with all nodes having config, 
+   * workflow and setting placeholder for NPC,IPC
+   * @param key - The key used to identify the process flow.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param pfjson - The process flow JSON.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
+   * @returns 'Success' if the process flow pre-processor completes successfully, 
+   *          otherwise throws a BadRequestException.
+   */
   async pfPreProcessor(key, upId,pfjson,mode,token) {
     this.logger.log('Pf PreProcessor started!');
     try {
@@ -930,10 +1032,18 @@ export class TeService {
 
   // --------------------------------pfProcessor--------------------------------------
 
-  /* Process flow Execution by iterating through the all the nodes 
-     and executing the corresponding logic for each node type.
-     @param key - The key used to identify the process flow.  
-  */
+  /**
+   * Process flow execution by iterating through all the nodes and executing 
+   * the corresponding logic for each node type.
+   * @param key - The key used to identify the process flow.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param token - The auth token.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param pfjson - The process flow JSON.
+   * @param sflag - The flag indicating suspend mode.
+   * @param nodeDetails - The details of the current node.
+   * @returns The status of the process flow execution.
+   */
   async pfProcessor(key, upId, token,mode,pfjson,sflag?,nodeDetails?) {
     this.logger.log('Pf Processor started!');
       var arr = [];
@@ -949,7 +1059,7 @@ export class TeService {
             sobj['nodename'] = pfjson[i].nodeName;
             sobj['nodetype'] = pfjson[i].nodeType;
             arr.push(sobj);
-            await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+            await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
 
             // //logging nodename in stream        
             await this.tecommonService.getTElogs(key, upId, pfjson[i],mode)
@@ -973,7 +1083,7 @@ export class TeService {
                 hobj['nodename'] = pfjson[i].nodeName;
                 hobj['nodetype'] = pfjson[i].nodeType;
                 arr.push(hobj);
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr)) 
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr)) 
 
                 var htNodeProp = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);    
                 if(Object.keys(htNodeProp).length > 0){                   
@@ -1043,7 +1153,7 @@ export class TeService {
                 whobj['nodename'] = pfjson[i].nodeName;
                 whobj['nodetype'] = pfjson[i].nodeType;
                 arr.push(whobj);
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
                 var whnodeprop = await this.redisService.getJsonDataWithPath(key + 'nodeProperty', '.'+pfjson[i].nodeId);
                 if(Object.keys(whnodeprop).length > 0){  
                   var whReq = JSON.parse(whnodeprop).data.pro.request  
@@ -1147,7 +1257,7 @@ export class TeService {
                 dobj['nodename'] = pfjson[i].nodeName;
                 dobj['nodetype'] = pfjson[i].nodeType;
                 arr.push(dobj);
-                await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
                
                 var cmresult = {}
                 var deciresult = {}  
@@ -1225,7 +1335,7 @@ export class TeService {
                   obj['nodename'] = pfjson[i].nodeName;
                   obj['nodetype'] = pfjson[i].nodeType;
                   arr.push(obj);
-                  await this.redisService.setJsonData(key + upId + ':previousArray', JSON.stringify(arr))
+                  await this.redisService.setJsonData(key + upId + ':nodeData', JSON.stringify(arr))
                   await this.nodePreProcessor(key, pfjson[i], upId,mode,token)
                   await this.nodeProcessor(key, pfjson[i], arr, upId,mode,token)
                   await this.nodePostProcessor(key, pfjson[i], upId,mode,token)
@@ -1269,10 +1379,17 @@ export class TeService {
 
   // -----------------------------NodePreProcessor--------------------------------------
 
-  /* Performs pre-processing tasks (make avaiable Pre data in NPC,IPC) for a specific node
-     @params key    - The key passed to identify the particular node in process flow.
-     @params pfjson - This variable holding the values of parsed process flow json 
-  */
+  /**
+   * Performs pre-processing tasks (make available Pre data in NPC, IPC)
+   * for a specific node.
+   *
+   * @param {string} key - The key passed to identify the particular node in process flow.
+   * @param {object} pfjson - The parsed process flow JSON.
+   * @param {string} upId - The unique identifier for the process flow execution.
+   * @param {string} mode - The mode of execution (D for debug, E for error).
+   * @param {string} token - The auth token.
+   * @returns {Promise<void>} - A promise that resolves when the function completes.
+   */
      async nodePreProcessor(key, pfjson, upId,mode,token) {
       this.logger.log('Node PreProcessor started!');
       try {
@@ -1302,10 +1419,15 @@ export class TeService {
 
   // --------------------------------NodeProcessor--------------------------------------
 
-  /* Performs API call (make avaiable Pro data in NPC,IPC) for a specific node
-     @params key    - The key passed to identify the particular node in process flow.
-     @params pfjson - This variable holding the values of parsed process flow json       
-  */
+  /**
+   * Performs API call (make available Pro data in NPC, IPC) for a specific node.
+   * @param key - The key passed to identify the particular node in process flow.
+   * @param pfjson - The parsed process flow JSON.
+   * @param arr - The array containing the node data.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
+   */
   async nodeProcessor(key, pfjson, arr, upId,mode,token) {
     this.logger.log('Node Processor started!');
     try {
@@ -1364,10 +1486,14 @@ export class TeService {
 
   // -----------------------------NodePostProcessor--------------------------------------
 
-  /* Performs post-processing tasks (make avaiable Post data in NPC,IPC) for a specific node
-     @params key    - The key passed to identify the particular node in process flow.
-     @params pfjson - This variable holding the values of parsed process flow json 
-  */
+  /**
+   * Performs post-processing tasks (make available Post data in NPC, IPC) for a specific node.
+   * @param key - The key passed to identify the particular node in process flow.
+   * @param pfjson - The parsed process flow JSON.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
+   */
      async nodePostProcessor(key, pfjson, upId,mode,token) {
       this.logger.log('Node PostProcessor started!');
       try {
@@ -1395,18 +1521,23 @@ export class TeService {
     }
   // -----------------------------pfPostProcessor--------------------------------------
 
-  /* Perform garbage clean logic and calling external API
-     @params key -  The key passed to identify the particular node in process flow.
-  */
+  /**
+   * Perform garbage clean logic and calling external API.
+   * @param key - The key passed to identify the particular node in process flow.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param pfjson - The parsed process flow JSON.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @param token - The auth token.
+   */
   async pfPostProcessor(key, upId,pfjson,mode,token) {
     this.logger.log('Pf PostProcessor started!');
     try{
 
       //Node's response would be cleared when execution is completed      
       if(pfjson.length > 0){
-        // for (var i = 0; i < pfjson.length; i++) {       
-        //   await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify({}), pfjson[i].nodeId + '.data.pro.response')      
-        // }
+        for (var i = 0; i < pfjson.length; i++) {       
+          await this.redisService.setJsonData(key + 'nodeProperty', JSON.stringify({}), pfjson[i].nodeId + '.data.pro.response')      
+        }
       }  
       var keys = await this.redisService.getKeys(key + upId)
       if(keys.length > 0){
@@ -1421,6 +1552,16 @@ export class TeService {
     }                                              
   }
 
+
+   /**
+   * Retrieves the custom code result, zen rule result, and mapper results for a given rule map.
+   * @param key - The key used to identify the rule map.
+   * @param upId - The unique identifier for the process flow execution.
+   * @param arr - The array containing node data.
+   * @param pfjson - The parsed process flow JSON.
+   * @param mode - The mode of execution (D for debug, E for error).
+   * @returns An object containing the custom code result, zen rule result, and mapper results.
+   */
   async getRuleMapCustomResult(key, upId,arr,pfjson,mode){
     this.logger.log('GetRuleMapCustomResult started!');      
       var c, z, mpre, mpro, mpst = 0;

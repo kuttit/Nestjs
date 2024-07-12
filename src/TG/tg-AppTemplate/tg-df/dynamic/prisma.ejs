@@ -10,7 +10,9 @@ provider = "prisma-client-js"
 <%_ for (let i = 0; i < data.length; i++) { _%>
 model <%= data[i].entities.Entity.toLowerCase()  %> {
 <%_ for (let j = 0; j < data[i].entities.attributes.length; j++) { _%>
-<%= data[i].entities.attributes[j].cname.toLowerCase()  %>    <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int') { _%> Decimal<%_ } else {_%> <%= data[i].entities.attributes[j].dataType.selectedValue  %><%_ } _%>   <%= ' '  %>    <%= data[i].entities.attributes[j].constraints  %>  <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'String') { _%>@db.VarChar(length: <%= data[i].entities.attributes[j].length  %>)<%_ }else if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int'){ _%>@db.Decimal(precision: <%= data[i].entities.attributes[j].length  %>, scale: 0)<%_} %>
+<%_ if(data[i].entities.attributes[j].cname !== '') {_%>
+<%= data[i].entities.attributes[j].cname.toLowerCase()  %>    <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int') { _%> Decimal<%_ } else {_%> <%= data[i].entities.attributes[j].dataType.selectedValue  %><%_ } _%> <%_ if(!data[i].entities.attributes[j].isRequired.value) { _%> ? <%_} %> <%= ' '  %>    <%= data[i].entities.attributes[j].constraints  %>  <% if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'String') { _%>@db.VarChar(length: <%= data[i].entities.attributes[j].length  %>)<%_ }else if(data[i].entities.attributes[j].length !== '' && data[i].entities.attributes[j].dataType.selectedValue === 'Int'){ _%>@db.Decimal(precision: <%= data[i].entities.attributes[j].length  %>, scale: 0)<%_} %>
+<%_} _%>
 <%_} _%>
 <%_ for (let k = 0; k < relation.length; k++) { _%>
 <%_ if (relation[k].Relationship === 'One,One') { _%>

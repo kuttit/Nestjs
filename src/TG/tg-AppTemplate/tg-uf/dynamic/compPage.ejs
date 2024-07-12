@@ -10,7 +10,10 @@ import { toast } from "react-toastify";
     export default function <%= data1%>() {
       <%_ if(data2 !== '') {_%>
       const [nodeDetails,setNodeDetails] = useState(null)
-  const [check,setCheck]=useState(false)
+    <%_for (let i = 0; i < data.length; i++) { _%><%_ if ( relation[data[i]].nodeType === 'group') { _%>
+  const [check<%= relation[data[i]].nodeName %>,setCheck<%= relation[data[i]].nodeName  %>,]=useState(false)
+<%_}_%><%_}_%>
+
   useEffect(() => {
     const cookies = document.cookie.split(';')
     const data = cookies.find(Cookie => Cookie.trim().startsWith('orpSecurity='))
@@ -18,12 +21,13 @@ import { toast } from "react-toastify";
     const finalData = JSON.parse(value)
     for(let i=0;i<finalData.length;i++){
       for(let j=0;j<finalData[i].Components.length;j++){
-
-        if(finalData[i].Components[j].componentName==  <%_ for (let i = 0; i < data.length; i++) { _%><%_ if ( relation[data[i]].nodeType === 'group') { _%>"<%= relation[data[i]].nodeName  %>"<%_}_%><%_}_%>){
-          setCheck(true)
+      <%_ for (let i = 0; i < data.length; i++) { _%><%_ if ( relation[data[i]].nodeType === 'group') { _%>
+        if(finalData[i].Components[j].componentName==  "<%= relation[data[i]].nodeName  %>"){
+          setCheck<%= relation[data[i]].nodeName  %>(true)
         }
+        <%_}_%><%_}_%>
       }
-      
+     
     }
   }, [])
       const handleFormData = async () => {
@@ -45,7 +49,9 @@ import { toast } from "react-toastify";
           'http://localhost:3002/pe/peStream',
           {
             key: key,
-            sfkey: '<%= data2[1]%>'
+            sfkey: '<%= data2[1]%>',
+            name:'pfPaymentProcess',
+            mode: 'E'
           },
           {
             headers: {
@@ -53,9 +59,10 @@ import { toast } from "react-toastify";
             }
           }
         )
+        if (res.data) {
         if (Object.keys(res.data).includes('result')) {
           if (res.data.statusCode == 201) {
-            if (res.data.result.url) {
+            if (res.data.result) {
               setNodeDetails(res.data.result)
 
               toast.success('Data send to process engine', {
@@ -81,6 +88,9 @@ import { toast } from "react-toastify";
             autoClose: 2000
           })
         }
+      }else {
+        toast.error('Invalid Response')
+      }
       } catch (err: any) {
         toast.error(err?.message, {
           autoClose: 2000
@@ -100,15 +110,15 @@ import { toast } from "react-toastify";
         }    
       }, [])
      <%_ } _%>
-      return <>
+      return (
+        <>
       <%_ for (let i = 0; i < data.length; i++) { _%>
       <%_ if ( relation[data[i]].nodeType === 'group') { _%>
-        {
-          check && <Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%> nodeDetails={nodeDetails}<%_ } _%> />
-        //< Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%>nodeDetails={nodeDetails} <%_ } _%> />
+          {check<%= relation[data[i]].nodeName  %> && <Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%> nodeDetails={nodeDetails}<%_ } _%> />}
+        {/*< Group<%= relation[data[i]].nodeName  %> <%= %> <%_ if(data2 !== '') {_%>nodeDetails={nodeDetails} <%_ } _%> />*/}
       <%_ } _%>
       <%_ } _%>
-    }
       </>
+      )
   }
     
