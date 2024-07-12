@@ -1,9 +1,26 @@
-FROM node:20-alpine AS build
-RUN npm i -g pnpm
+
+FROM node:20 AS build
+
+RUN npm install -g pnpm
 WORKDIR /usr/src/app
-COPY package*.json pnpm-lock.yaml ./
+COPY package*.json pnpm-lock.yaml* ./
 RUN pnpm install
+RUN npm install @opentelemetry/resources
+
+RUN npm install @opentelemetry/semantic-conventions
+
 COPY . .
-RUN pnpm build
+
+RUN pnpm run build
+
+# Stage 2: Production Stage
+
+FROM node:20
+
+WORKDIR /usr/src/app
+
+COPY --from=build /usr/src/app ./
+
 EXPOSE 3002
-CMD ["pnpm","start:dev"]
+
+CMD ["pnpm", "start:dev"]
