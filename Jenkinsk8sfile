@@ -25,7 +25,7 @@ pipeline {
         stage("Code Checkout") {
             steps {
                 withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDENTIALS}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
-                    git branch: 'master', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'
+                    git branch: 'main', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'
                 }
             }
         }
@@ -91,8 +91,7 @@ pipeline {
                         kubeconfig(credentialsId: 'kubernetes', serverUrl: 'https://lb.kubesphere.local:6443') {
                             sh 'kubectl delete --all pods'
                             sh 'kubectl create namespace nestjs'
-                            sh 'kubectl apply -f deployment.yaml'
-                            sh 'kubectl apply -f service.yaml'
+                            sh 'kubectl apply -f deploymentservice.yaml'
                         }
                     }
                 }
