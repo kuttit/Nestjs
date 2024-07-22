@@ -1,0 +1,88 @@
+pipeline {
+    agent {
+        label 'slave-174'
+    }
+    tools {
+        jdk 'jdk17'
+        nodejs 'Node20.0.0'
+    }
+
+    environment {
+        SCANNER_HOME = tool 'sonar-scanner'
+        APP_NAME = "torus9x-nest-app"
+        DOCKERHUB_CREDENTIALS = "docker-hub"
+        GITHUB_CREDENTIALS = "GIT_HUB_PAT"
+        DOCKERHUB_USERNAME = "durai54"
+        IMAGE_NAME = "${DOCKERHUB_USERNAME}/${APP_NAME}"
+    }
+
+    stages {
+        stage('Clean Workspace') {
+            steps {
+                cleanWs()
+            }
+        }
+
+        stage("Code Checkout") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "${GITHUB_CREDENTIALS}", usernameVariable: 'USERNAME', passwordVariable: 'PASSWORD')]) {
+                    git branch: 'main', credentialsId: "${GITHUB_CREDENTIALS}", url: 'https://github.com/kuttit/Nestjs.git'
+                }
+            }
+        }
+
+        stage('Docker Build Image') {
+            steps {
+                script {
+                    sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+                }
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                withCredentials([usernamePassword(credentialsId: DOCKERHUB_CREDENTIALS, usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                    script {
+                        sh "docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD"
+                        sh "docker push ${IMAGE_NAME}:${BUILD_NUMBER}"
+                    }
+                }
+            }
+        }
+
+        stage('Remove Previous Build Image') {
+            steps {
+                script {
+                    def prevBuildNumber = env.BUILD_NUMBER.toInteger() - 1
+                    if (prevBuildNumber > 0) {
+                        sh "docker rmi -f ${DOCKER_REGISTRY}/${APP_NAME}:${prevBuildNumber} || true"
+                    }
+                }
+            }
+        }
+
+        stage('Updating Kubernetes deployment file') {
+            steps {
+                script {
+                    sh "cat kubernetes/deployment.yaml"
+                    sh "sed -i 's/${APP_NAME}.*/${APP_NAME}:${IMAGE_TAG}/g' kubernetes/deployment.yaml"
+                    sh "cat kubernetes/deployment.yaml"
+                }
+            }
+        }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                script {
+                    dir('kubernetes') {
+                        kubeconfig(credentialsId: 'kubernetes', serverUrl: 'https://lb.kubesphere.local:6443') {
+                            sh 'kubectl delete --all pods'
+                            sh 'kubectl create namespace nestjs'
+                            sh 'kubectl apply -f deploymentservice.yaml'
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
