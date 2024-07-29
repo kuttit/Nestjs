@@ -23,7 +23,7 @@ const sdk = new opentelemetry.NodeSDK({
   traceExporter,
   instrumentations: [getNodeAutoInstrumentations()],
   resource: new Resource({   
-    [SemanticResourceAttributes.SERVICE_NAME]: "Process-Engine",  
+    [SemanticResourceAttributes.SERVICE_NAME]: "nestjs-app",  
   }),
 });
 
