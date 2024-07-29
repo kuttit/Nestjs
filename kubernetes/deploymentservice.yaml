@@ -27,7 +27,7 @@ spec:
         - name: redis_port
           value: "8085"
         - name: OTEL_EXPORTER_OTLP_ENDPOINT
-          value: "http://l92.168.2.174:4317"
+          value: "http://l92.168.2.178:4317"
         - name: OTLP_SERVICENAME
           value: "nestjs-app"
 
