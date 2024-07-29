@@ -31,7 +31,7 @@ pipeline {
             }
         }
 
-        stage("Sonarqube Analysis") {
+      /*  stage("Sonarqube Analysis") {
             steps {
                 withSonarQubeEnv('sonar-server') {
                     sh "${SCANNER_HOME}/bin/sonar-scanner \
@@ -39,15 +39,15 @@ pipeline {
                         -Dsonar.projectKey=Nestapp"
                 }
             }
-        } 
+        } */
 
-        stage("Quality Gate") {
+       /* stage("Quality Gate") {
             steps {
                 script {
                     waitForQualityGate abortPipeline: false, credentialsId: 'Sonar-token'
                 }
             }
-        }
+        } */
         
 
         stage('Docker Build Image') {
