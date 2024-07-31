@@ -68,7 +68,7 @@ pipeline {
             }
         }
 
-        stage('Remove Old Container') {
+      /*  stage('Remove Old Container') {
             steps {
                 script {
                     sh "docker stop torus9x-nest-app-backend-container || true"
@@ -94,7 +94,7 @@ pipeline {
                     sh "docker run -d --name torus9x-nest-app-backend-container -p 3002:3002 ${DOCKER_REGISTRY}/${APP_NAME}:${BUILD_NUMBER}"
                 }
             } 
-        }
+        } */
     }
 
 }
