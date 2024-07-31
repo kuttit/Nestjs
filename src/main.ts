@@ -2,7 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as bodyParser from 'body-parser';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import tracer from './tracer';
+const tracer = require('./tracer');
 import * as session from 'express-session';
 async function bootstrap() {
   await tracer.start();
