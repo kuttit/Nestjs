@@ -12,7 +12,7 @@ dotenv.config();
 const otelExporterOtlpHeaders = process.env.OTEL_EXPORTER_OTLP_HEADERS;
 
 const exporterOptions = {
-  url: 'http://192.168.2.178:4318/v1/traces', 
+  url: 'http://192.168.2.178:4318/', 
 };
 
 const traceExporter = new OTLPTraceExporter(exporterOptions);
