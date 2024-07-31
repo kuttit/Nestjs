@@ -19,9 +19,7 @@ const traceExporter = new OTLPTraceExporter(exporterOptions);
 const sdk = new opentelemetry.NodeSDK({
   traceExporter,
    instrumentations: [
-    getNodeAutoInstrumentations({
-     '@opentelemetry/instrumentation-nestjs-core': { enabled: true },
-    }),
+    getNodeAutoInstrumentations({'@opentelemetry/instrumentation-nestjs-core': {enabled: true}}),
   ],
   resource: new Resource({   
     [SemanticResourceAttributes.SERVICE_NAME]: "nestjs-app",  
