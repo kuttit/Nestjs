@@ -12,7 +12,7 @@ dotenv.config();
 const otelExporterOtlpHeaders = process.env.OTEL_EXPORTER_OTLP_HEADERS;
 
 const exporterOptions = {
-  url: process.env.url, 
+  url: process.env.endpoint, 
 };
 
 const traceExporter = new OTLPTraceExporter(exporterOptions);
