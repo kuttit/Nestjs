@@ -52,6 +52,7 @@
     "ioredis": "^5.3.2",
     "json-rules-engine": "^6.5.0",
     "jwt-decode": "^4.0.0",
+    "multer": "^1.4.5-lts.1",
     "node-json-transform": "^1.1.2",
     "nodemailer": "^6.9.13",
     "pg": "^8.11.5",
