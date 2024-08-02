@@ -4,7 +4,7 @@ import 'dotenv/config';
 
 export const redis = new Redis({
   host: process.env.HOST,
-  port: parseInt(process.env.PORT),
+  port: parseInt(process.env.PORT,10),
 }).on('error', (err) => {
   console.log('Redis Client Error', err);
   throw err;
