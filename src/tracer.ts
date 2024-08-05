@@ -22,7 +22,7 @@ const sdk = new opentelemetry.NodeSDK({
     getNodeAutoInstrumentations({'@opentelemetry/instrumentation-nestjs-core': {enabled: true}}),
   ],
   resource: new Resource({   
-    [SemanticResourceAttributes.SERVICE_NAME]: "nestjs-app",  
+    [SemanticResourceAttributes.SERVICE_NAME]: process.env.SERVICE_NAME, 
   }),
 });
 
